@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+#
+# Compare Go agent profiling audit log file with agent debugging log output to see which expected
+# custom events actually were reported out to the back end.
+#
+import sys
+import json
+import re
+
+class AuditRecord:
+    def __init__(self, event_type=None, harvest_seq=None, sample_seq=None, error=None, **k):
+        self.event_type = event_type
+        self.harvest_seq = harvest_seq
+        self.sample_seq = sample_seq
+        self.error = error
+        self.seen = False
+
+class AuditLog (dict):
+    def __init__(self, filename):
+        # The audit file has a single line per expected profile sample, in JSON format.
+        l=0
+        with open(filename) as audit_data:
+            for audit_record in audit_data:
+                l+=1
+                record = AuditRecord(**json.loads(audit_record))
+                if record.event_type is None or record.harvest_seq is None or record.sample_seq is None:
+                    raise ValueError(f'line {l}: missing required audit fields <{record.event_type}, {record.harvest_seq}, {record.sample_seq}>')
+                if self.k(record.event_type, record.harvest_seq, record.sample_seq) in self:
+                    raise KeyError(f'line {l}: duplicate audit record <{record.event_type}, {record.harvest_seq}, {record.sample_seq}>')
+                self[self.k(record.event_type, record.harvest_seq, record.sample_seq)] = record
+
+    def k(self, event_type, harvest_seq, sample_seq):
+        return f'{event_type};{harvest_seq};{sample_seq}'
+
+    def counts(self):
+        counters = {}
+        for record in self.values():
+            counters[record.event_type] = counters.get(record.event_type, 0) + 1
+        return counters
+
+    def account_for(self, event_type, harvest_seq, sample_seq):
+        k = self.k(event_type, harvest_seq, sample_seq)
+        if k not in self:
+            raise KeyError(f"Unable to account for event <{event_type}, {harvest_seq}, {sample_seq}>: not in audit!")
+        if self[k].seen:
+            raise KeyError(f"Reported twice! <{event_type}, {harvest_seq}, {sample_seq}>")
+        self[k].seen = True
+
+    def unaccounted_for(self):
+        counters = {}
+        for record in self.values():
+            if record.seen:
+                counters[record.event_type] = counters.get(record.event_type, 0) + 1
+        return counters
+
+
+
+
+if len(sys.argv) != 3:
+    print(f"Usage: {sys.argv[0]} audit-file debug-log")
+    exit(1)
+
+print("Reading audit log...")
+audit = AuditLog(sys.argv[1])
+print(f'Audit log contains {len(audit):,} entries:')
+tally = audit.counts()
+for profile_type in sorted(tally.keys()):
+    print(f'{tally[profile_type]:10,d} {profile_type}')
+
+# Now, pick through the debug log and see if we find evidence that the agent
+# actually sent all the events we asked it to.
+skip_count = 0
+other_count = 0
+processed_count = 0
+dropped_count = 0
+dropped_instances = 0
+l=0
+with open(sys.argv[2]) as debug_log:
+    for debug_line in debug_log:
+        l += 1
+        if m := re.search(r'(\{.*\})\s*$', debug_line):
+            try:
+                data = json.loads(m.group(1))
+            except json.decoder.JSONDecodeError:
+                print(f"Skipping input line {l}: {debug_line[:30]}... (malformed JSON)")
+                skip_count += 1
+                continue
+            
+            if 'msg' in data and data['msg'] == 'rpm request' and 'context' in data and 'command' in data['context'] and data['context']['command'] == 'custom_event_data':
+                if 'payload' not in data['context']:
+                    print(f'Skipping input line {l}: {debug_line[:30]}... (missing payload field)')
+                    skip_count += 1
+                    continue
+
+                reservoir_size = data['context']['payload'][1]['reservoir_size']
+                events_seen = data['context']['payload'][1]['events_seen']
+
+                if reservoir_size < events_seen :
+                    print(f'WARNING: {events_seen} EVENTS IN RESERVIOR SIZE OF {reservoir_size}!')
+                    dropped_count += events_seen - reservoir_size
+                    dropped_instances += 1
+
+                for sample in data['context']['payload'][2]:
+                    audit.account_for(sample[0]['type'], sample[1]['harvest_seq'], sample[1]['sample_seq'])
+
+                processed_count += 1
+            else:
+                other_count += 1
+        else:
+            print(f'Skipping input line {l}: {debug_line[:30]}... (doesn\'t look like a debug log line)')
+            skip_count += 1
+
+print(f'Processed {processed_count} lines of debug log entries for custom events')
+print(f'          {other_count} lines of debug log entries that were other things')
+print(f'Skipped   {skip_count} lines that weren\'t valid debug log data')
+if dropped_instances > 0:
+    print(f"During the program's execution, it exceeded the reservoir size {dropped_instances:,} time{'s' if dropped_instances != 1 else ''}")
+    print(f"resulting in an overage of {dropped_count:,} event{'' if dropped_count==1 else 's'}!")
+    print('This was based on the debug log reports of event harvest reservoir values, and does not represent the')
+    print('actual number of dropped events due to how the harvester actually works.')
+else:
+    print("All expected events were found in the debug log.")
+
+tally = audit.unaccounted_for()
+total = 0
+if len(tally) > 0:
+    print(f"UNACCOUNTED-FOR PROFILE EVENTS OUT OF {len(audit):,} TOTAL:")
+    for profile_type in sorted(tally.keys()):
+        print(f'{tally[profile_type]:10,d} {(tally[profile_type]*100.0)/len(audit):3.0f}% {profile_type}')
+        total += tally[profile_type]
+    print(f'{total:10,d} {(total*100.0)/len(audit):3.0f}% TOTAL')

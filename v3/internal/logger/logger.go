@@ -79,9 +79,32 @@ func (f *logFile) fire(level, msg string, ctx map[string]interface{}) {
 		sanitized := re.ReplaceAllLiteralString(string(js), "license_key=[redacted]")
 		f.l.Print(sanitized)
 	} else {
-		f.l.Printf("unable to marshal log entry")
-		// error value removed from message to avoid possibility of sensitive
-		// content being leaked that way
+		redactedMap := make(map[string]any, len(ctx))
+		for k, v := range ctx {
+			if k == "payload" {
+				redactedMap[k] = "[redacted]"
+			} else {
+				redactedMap[k] = v
+			}
+		}
+		js, err := json.Marshal(struct {
+			Level   string         `json:"level"`
+			Event   string         `json:"msg"`
+			Context map[string]any `json:"context"`
+		}{
+			level,
+			msg,
+			redactedMap,
+		})
+		if err == nil {
+			re := regexp.MustCompile(`license_key=[a-fA-F0-9.]+`)
+			sanitized := re.ReplaceAllLiteralString(string(js), "license_key=[redacted]")
+			f.l.Print(sanitized)
+		} else {
+			f.l.Printf("unable to marshal log entry")
+			// error value removed from message to avoid possibility of sensitive
+			// content being leaked that way
+		}
 	}
 }
 

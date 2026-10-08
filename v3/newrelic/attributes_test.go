@@ -207,6 +207,24 @@ func TestWriteAttributeValueJSON(t *testing.T) {
 	}
 }
 
+func TestWriteAttributeValueJSONLimit(t *testing.T) {
+	buf := &bytes.Buffer{}
+	w := jsonFieldsWriter{buf: buf}
+
+	long := strings.Repeat("a", 300)
+
+	buf.WriteByte('{')
+	writeAttributeValueJSONLimit(&w, "truncated", long, 256)
+	writeAttributeValueJSONLimit(&w, "unlimited", long, 0)
+	buf.WriteByte('}')
+
+	expect := `{"truncated":"` + strings.Repeat("a", 256) + `","unlimited":"` + long + `"}`
+	js := buf.String()
+	if js != expect {
+		t.Error(js, expect)
+	}
+}
+
 func TestValidAttributeTypes(t *testing.T) {
 	testcases := []struct {
 		Input interface{}

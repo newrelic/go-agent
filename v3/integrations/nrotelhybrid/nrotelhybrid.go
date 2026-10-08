@@ -13,8 +13,6 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
-
 type txnMapEntry struct {
 	txn    *newrelic.Transaction
 	spanID oteltrace.SpanID

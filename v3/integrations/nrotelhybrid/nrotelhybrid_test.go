@@ -857,16 +857,14 @@ func Test_checkMap(t *testing.T) {
 }
 
 type fakeSegment struct {
-	attrs      map[string]interface{}
-	endCalled  bool
-	spanEvents []string
+	attrs map[string]any
 }
 
-func (f *fakeSegment) End() { f.endCalled = true }
+func (f *fakeSegment) End() {}
 
-func (f *fakeSegment) AddAttribute(key string, val interface{}) {
+func (f *fakeSegment) AddAttribute(key string, val any) {
 	if f.attrs == nil {
-		f.attrs = map[string]interface{}{}
+		f.attrs = map[string]any{}
 	}
 	f.attrs[key] = val
 }

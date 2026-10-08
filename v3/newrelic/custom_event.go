@@ -44,8 +44,18 @@ func (e *customEvent) WriteJSON(buf *bytes.Buffer) {
 	buf.WriteByte(',')
 	buf.WriteByte('{')
 	w = jsonFieldsWriter{buf: buf}
-	for key, val := range e.truncatedParams {
-		writeAttributeValueJSON(&w, key, val)
+	// LLM event types MUST preserve full-length attribute values so the
+	// collector can count tokens server-side. Every other custom event type
+	// keeps the default byte-limit truncation.
+	// https://source.datanerd.us/agents/agent-specs/blob/main/artificial_intelligence/LLMs.md#llm-events
+	if e.eventType == "LlmEmbedding" || e.eventType == "LlmChatCompletionSummary" || e.eventType == "LlmChatCompletionMessage" {
+		for key, val := range e.truncatedParams {
+			writeAttributeValueJSONLimit(&w, key, val, 0)
+		}
+	} else {
+		for key, val := range e.truncatedParams {
+			writeAttributeValueJSON(&w, key, val)
+		}
 	}
 	buf.WriteByte('}')
 

@@ -27,8 +27,8 @@ type ErrorInfo struct {
 	// the Message and Class fields.
 	Error error
 
-	// Time Occured is the time.Time when the error was noticed by the go agent
-	TimeOccured time.Time
+	// Time Occurred is the time.Time when the error was noticed by the go agent
+	TimeOccurred time.Time
 
 	// Message will always be populated by a string message describing an error
 	Message string
@@ -74,7 +74,7 @@ func (e *ErrorInfo) GetStackTraceFrames() []StacktraceFrame {
 	return e.stackTrace.frames()
 }
 
-// GetRequestURI returns the URI of the http request made during the parent transaction of this error. If no web request occured,
+// GetRequestURI returns the URI of the http request made during the parent transaction of this error. If no web request occurred,
 // this will return an empty string.
 func (e *ErrorInfo) GetRequestURI() string {
 	val, ok := e.txnAttributes.Agent[AttributeRequestURI]
@@ -85,8 +85,8 @@ func (e *ErrorInfo) GetRequestURI() string {
 	return val.stringVal
 }
 
-// GetRequestMethod will return the HTTP method used to make a web request if one occured during the parent transaction
-// of this error. If no web request occured, then an empty string will be returned.
+// GetRequestMethod will return the HTTP method used to make a web request if one occurred during the parent transaction
+// of this error. If no web request occurred, then an empty string will be returned.
 func (e *ErrorInfo) GetRequestMethod() string {
 	val, ok := e.txnAttributes.Agent[AttributeRequestMethod]
 	if !ok {
@@ -97,7 +97,7 @@ func (e *ErrorInfo) GetRequestMethod() string {
 }
 
 // GetHttpResponseCode will return the HTTP response code that resulted from the web request made in the parent transaction of
-// this error. If no web request occured, then an empty string will be returned.
+// this error. If no web request occurred, then an empty string will be returned.
 func (e *ErrorInfo) GetHttpResponseCode() string {
 	val, ok := e.txnAttributes.Agent[AttributeResponseCode]
 	if !ok {
