@@ -857,7 +857,8 @@ func Test_checkMap(t *testing.T) {
 }
 
 type fakeSegment struct {
-	attrs map[string]any
+	attrs      map[string]any
+	spanEvents []string
 }
 
 func (f *fakeSegment) End() {}
