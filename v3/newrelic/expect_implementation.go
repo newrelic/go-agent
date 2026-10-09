@@ -498,10 +498,13 @@ func expectTxnEventsPartial(v internal.Validator, events *txnEvents, expect []in
 // attributes specified in expect and ignoring any additional attributes
 // present on the actual events (e.g. distributed tracing intrinsics).
 func expectSpanEventsPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
-	// Check for root existing and remove it if it does
-	actualEvents := events.analyticsEvents.events
-	if len(actualEvents) > 0 {
-		actualEvents = actualEvents[:len(actualEvents)-1]
+	// Drop transaction root spans (entry points); there is one per transaction
+	var actualEvents []analyticsEvent
+	for _, e := range events.analyticsEvents.events {
+		if se, ok := e.jsonWriter.(*spanEvent); ok && se.IsEntrypoint {
+			continue
+		}
+		actualEvents = append(actualEvents, e)
 	}
 	if len(actualEvents) != len(expect) {
 		v.Error("number of events does not match", len(actualEvents), len(expect))
