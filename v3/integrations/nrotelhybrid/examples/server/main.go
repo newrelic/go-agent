@@ -25,6 +25,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -32,6 +33,7 @@ import (
 
 	_ "github.com/lib/pq"
 
+	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -103,6 +105,7 @@ func newHTTPHandler(d *deps) http.Handler {
 	mux.HandleFunc("/serverroot/", serverRoot)
 	mux.HandleFunc("/clientexternal/", clientExternal)
 	mux.HandleFunc("/clientdatastore/", d.clientDatastore)
+	mux.HandleFunc("/clienterror/", clientError)
 
 	// Add HTTP instrumentation for the whole server; this is what makes
 	// each incoming request a SpanKindServer root transaction.
@@ -114,7 +117,8 @@ func newHTTPHandler(d *deps) http.Handler {
 // serverRoot Extracts headers to check for a remote parent. It also
 // begins two child spans with different SpanKinds
 func serverRoot(w http.ResponseWriter, r *http.Request) {
-	tracer := otel.Tracer("nrotel-example")
+
+	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
@@ -144,4 +148,15 @@ func clientExternal(w http.ResponseWriter, r *http.Request) {
 // clientDatastore makes a simple query
 func (d *deps) clientDatastore(w http.ResponseWriter, r *http.Request) {
 	d.db.QueryRowContext(r.Context(), "SELECT count(*) FROM pg_catalog.pg_tables")
+}
+
+func clientError(w http.ResponseWriter, r *http.Request) {
+	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
+	_, span := tracer.Start(r.Context(), "possible-error-segment")
+	defer span.End()
+	if r.Method != http.MethodPost {
+		span.RecordError(fmt.Errorf("Incorrect Method: %v", r.Method))
+		http.Error(w, "Automatic Error Generated", http.StatusMethodNotAllowed)
+		return
+	}
 }
