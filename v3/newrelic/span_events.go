@@ -39,6 +39,9 @@ type spanEvent struct {
 	TracingVendors  string
 	AgentAttributes spanAttributeMap
 	UserAttributes  spanAttributeMap
+	SpanLinks       []LinkedSpan
+	SpanEventEvents []SpanEventEvent
+	otelSpanID      string
 }
 
 // WriteJSON prepares JSON in the format expected by the collector.
@@ -90,7 +93,16 @@ func (e *spanEvent) WriteJSON(buf *bytes.Buffer) {
 	writeAttrs(buf, e.AgentAttributes)
 
 	buf.WriteByte('}')
+
 	buf.WriteByte(']')
+	for _, link := range e.SpanLinks {
+		buf.WriteByte(',')
+		link.WriteJSONWithContainer(buf, e)
+	}
+	for _, event := range e.SpanEventEvents {
+		buf.WriteByte(',')
+		event.WriteJSON(buf, e)
+	}
 }
 
 func writeAttrs(buf *bytes.Buffer, attrs spanAttributeMap) {
