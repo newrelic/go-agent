@@ -108,7 +108,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	//fmt.Printf("*** OnStart trace %v, span %x, links=%d\n", s.SpanContext().TraceID(), s.SpanContext().SpanID(), len(s.Links()))
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn || len(s.Links()) > 0 {
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn || len(s.Links()) > 0 {
 		//fmt.Println("*** starting transaction for it")
 		p.startTransaction(s, isWeb)
 		return
