@@ -507,6 +507,7 @@ func (thd *thread) End(recovered interface{}) error {
 			TxnName:      txn.FinalName,
 			Category:     spanCategoryGeneric,
 			IsEntrypoint: true,
+			SpanLinks:    txn.Links,
 		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
@@ -585,6 +586,21 @@ func (txn *txn) AddUserID(userID string) error {
 	}
 
 	txn.Attrs.Agent.Add(AttributeUserID, userID, nil)
+	return nil
+}
+
+func (txn *txn) addLink(spanID, traceID string, start time.Time) error {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	txn.Links = append(txn.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
 	return nil
 }
 

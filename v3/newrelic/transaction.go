@@ -603,6 +603,13 @@ func (txn *Transaction) SetCsecAttributes(key string, value any) {
 
 }
 
+func (txn *Transaction) AddLink(spanID, traceID string, start time.Time) {
+	if nilTransaction(txn) {
+		return
+	}
+	txn.thread.logAPIError(txn.thread.addLink(spanID, traceID, start), "add link", nil)
+}
+
 const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.

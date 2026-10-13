@@ -25,9 +25,8 @@ const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dro
 const w3cVersion = "00"
 
 type txnMapEntry struct {
-	txn      *newrelic.Transaction
-	spanID   oteltrace.SpanID
-	hasLinks bool
+	txn    *newrelic.Transaction
+	spanID oteltrace.SpanID
 }
 
 type segmentEntry struct {
@@ -108,7 +107,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
 	//fmt.Printf("*** OnStart trace %v, span %x, links=%d\n", s.SpanContext().TraceID(), s.SpanContext().SpanID(), len(s.Links()))
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn || len(s.Links()) > 0 {
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn {
 		//fmt.Println("*** starting transaction for it")
 		p.startTransaction(s, isWeb)
 		return
@@ -158,7 +157,7 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		txn.SetWebRequest(req)
 	}
 	traceID := s.SpanContext().TraceID()
-	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID(), hasLinks: (len(s.Links()) > 0)})
+	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID()})
 	//fmt.Printf("*** recorded %v %v %v\n", traceID, s.SpanContext().SpanID(), len(s.Links()))
 }
 
@@ -211,6 +210,13 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		if entries[i].txn != nil {
 			if hasErr {
 				entries[i].txn.NoticeError(nrErr)
+			}
+			if len(links) > 0 {
+				for _, link := range links {
+					entries[i].txn.AddLink(link.SpanContext.SpanID().String(),
+						link.SpanContext.TraceID().String(),
+						s.StartTime())
+				}
 			}
 			transactionsToEnd = append(transactionsToEnd, entries[i].txn)
 		}
@@ -426,7 +432,7 @@ func checkMap(key attribute.Key, attrMap map[string]string) (string, bool) {
 func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
 	// if the innermost active transaction exists and is not the same span id, it is within an existing transaction
 	if entries := txnMap[traceID]; len(entries) > 0 {
-		return entries[len(entries)-1].spanID != spanID && !entries[len(entries)-1].hasLinks
+		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
 }

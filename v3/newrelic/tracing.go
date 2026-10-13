@@ -106,7 +106,10 @@ type txnData struct {
 	rootSpanErrData         *errorData
 	Errors                  txnErrors // Lazily initialized.
 	SpanEvents              []*spanEvent
-	logs                    logEventHeap
+	Links                   []LinkedSpan
+	SpanEventEvents         []SpanEventEvent
+
+	logs logEventHeap
 
 	customSegments    map[string]*metricData
 	datastoreSegments map[datastoreMetricKey]*metricData
