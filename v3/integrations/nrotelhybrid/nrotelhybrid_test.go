@@ -1202,7 +1202,7 @@ func Test_nrotelhybridProcessor_OnEnd_SpanEvents(t *testing.T) {
 			if !ok {
 				t.Fatal("expected a segment to be created for the child span")
 			}
-			seg, ok := segIface.(*newrelic.Segment)
+			seg, ok := segIface.seg.(*newrelic.Segment)
 			if !ok {
 				t.Fatalf("expected *newrelic.Segment, got %T", segIface)
 			}
