@@ -79,11 +79,14 @@ type OtelTestCaseTransaction struct {
 }
 
 type OtelTestCaseSpan struct {
-	Name       string         `json:"name"`
-	Category   string         `json:"category"`
-	ParentName string         `json:"parentName"`
-	EntryPoint bool           `json:"entryPoint"`
-	Attributes map[string]any `json:"attributes"`
+	Name          string         `json:"name"`
+	Category      string         `json:"category"`
+	ParentName    string         `json:"parentName"`
+	EntryPoint    bool           `json:"entryPoint"`
+	Attributes    map[string]any `json:"attributes"`
+	LinkedTraceId string         `json:"linkedTraceId"`
+	LinkedSpanId  string         `json:"linkedSpanId"`
+	Type          string         `json:"type"`
 }
 
 type ExternalCall struct {
@@ -188,7 +191,7 @@ func TestOtelSpanLinks(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		if i != 2 {
+		if i != 0 {
 			continue
 		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
@@ -522,6 +525,15 @@ func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantE
 		}
 		intrinsics := map[string]interface{}{
 			"name": span.Name,
+		}
+		if span.LinkedTraceId != "" {
+			intrinsics["linkedTraceId"] = span.LinkedTraceId
+		}
+		if span.LinkedSpanId != "" {
+			intrinsics["linkedSpanId"] = span.LinkedSpanId
+		}
+		if span.Type != "" {
+			intrinsics["type"] = span.Type
 		}
 		agentAttributes := map[string]interface{}{}
 

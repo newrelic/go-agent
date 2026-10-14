@@ -512,7 +512,7 @@ func endSegment(t *txnData, thread *tracingThread, start segmentStartTime, now t
 }
 
 // endBasicSegment ends a basic segment.
-func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string) error {
+func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, now time.Time, name string, links []LinkedSpan, spanEventEvents []SpanEventEvent, otelSpanID string) error {
 	end, err := endSegment(t, thread, start, now)
 	if err != nil {
 		return err
@@ -539,6 +539,9 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = customSegmentMetric(name)
 		evt.Category = spanCategoryGeneric
+		evt.SpanLinks = links
+		evt.SpanEventEvents = spanEventEvents
+		evt.otelSpanID = otelSpanID
 		t.saveSpanEvent(evt)
 	}
 
@@ -547,17 +550,20 @@ func endBasicSegment(t *txnData, thread *tracingThread, start segmentStartTime, 
 
 // endExternalParams contains the parameters for endExternalSegment.
 type endExternalParams struct {
-	TxnData    *txnData
-	Thread     *tracingThread
-	Start      segmentStartTime
-	Now        time.Time
-	Logger     logger.Logger
-	Response   *http.Response
-	URL        *url.URL
-	Host       string
-	Library    string
-	Method     string
-	StatusCode *int
+	TxnData         *txnData
+	Thread          *tracingThread
+	Start           segmentStartTime
+	Now             time.Time
+	Logger          logger.Logger
+	Response        *http.Response
+	URL             *url.URL
+	Host            string
+	Library         string
+	Method          string
+	StatusCode      *int
+	Links           []LinkedSpan
+	SpanEventEvents []SpanEventEvent
+	otelSpanID      string
 }
 
 // endExternalSegment ends an external segment.
@@ -647,6 +653,9 @@ func endExternalSegment(p endExternalParams) error {
 		} else if p.Response != nil {
 			evt.AgentAttributes.addInt(SpanAttributeHTTPStatusCode, p.Response.StatusCode)
 		}
+		evt.SpanLinks = p.Links
+		evt.SpanEventEvents = p.SpanEventEvents
+		evt.otelSpanID = p.otelSpanID
 		t.saveSpanEvent(evt)
 	}
 
@@ -664,6 +673,9 @@ type endMessageParams struct {
 	Library         string
 	DestinationType string
 	DestinationTemp bool
+	Links           []LinkedSpan
+	SpanEventEvents []SpanEventEvent
+	otelSpanID      string
 }
 
 // endMessageSegment ends an external segment.
@@ -703,6 +715,9 @@ func endMessageSegment(p endMessageParams) error {
 	if evt := end.spanEvent(); evt != nil {
 		evt.Name = key.Name()
 		evt.Category = spanCategoryGeneric
+		evt.SpanLinks = p.Links
+		evt.SpanEventEvents = p.SpanEventEvents
+		evt.otelSpanID = p.otelSpanID
 		t.saveSpanEvent(evt)
 	}
 
@@ -724,6 +739,9 @@ type endDatastoreParams struct {
 	PortPathOrID       string
 	Database           string
 	ThisHost           string
+	Links              []LinkedSpan
+	SpanEventEvents    []SpanEventEvent
+	otelSpanID         string
 }
 
 const (
@@ -856,6 +874,9 @@ func endDatastoreSegment(p endDatastoreParams) error {
 		evt.AgentAttributes.addString(SpanAttributePeerAddress, datastoreSpanAddress(p.Host, p.PortPathOrID))
 		evt.AgentAttributes.addString(SpanAttributePeerHostname, p.Host)
 		evt.AgentAttributes.addString(SpanAttributeDBCollection, p.Collection)
+		evt.SpanLinks = p.Links
+		evt.SpanEventEvents = p.SpanEventEvents
+		evt.otelSpanID = p.otelSpanID
 		p.TxnData.saveSpanEvent(evt)
 	}
 

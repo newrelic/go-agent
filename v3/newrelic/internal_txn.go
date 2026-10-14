@@ -955,7 +955,7 @@ func endBasic(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name)
+		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links, s.SpanEventEvents, s.otelSpanID)
 	}
 	txn.Unlock()
 	return err
@@ -1009,6 +1009,9 @@ func endDatastore(s *DatastoreSegment) error {
 		PortPathOrID:       s.PortPathOrID,
 		Database:           s.DatabaseName,
 		ThisHost:           txn.appRun.Config.hostname,
+		Links:              s.Links,
+		SpanEventEvents:    s.SpanEventEvents,
+		otelSpanID:         s.otelSpanID,
 	})
 }
 
@@ -1064,17 +1067,20 @@ func endExternal(s *ExternalSegment) error {
 		return err
 	}
 	return endExternalSegment(endExternalParams{
-		TxnData:    &txn.txnData,
-		Thread:     thd.thread,
-		Start:      s.StartTime.start,
-		Now:        time.Now(),
-		Logger:     txn.Config.Logger,
-		Response:   s.Response,
-		URL:        u,
-		Host:       s.Host,
-		Library:    s.Library,
-		Method:     externalSegmentMethod(s),
-		StatusCode: s.statusCode,
+		TxnData:         &txn.txnData,
+		Thread:          thd.thread,
+		Start:           s.StartTime.start,
+		Now:             time.Now(),
+		Logger:          txn.Config.Logger,
+		Response:        s.Response,
+		URL:             u,
+		Host:            s.Host,
+		Library:         s.Library,
+		Method:          externalSegmentMethod(s),
+		StatusCode:      s.statusCode,
+		Links:           s.Links,
+		SpanEventEvents: s.SpanEventEvents,
+		otelSpanID:      s.otelSpanID,
 	})
 }
 
@@ -1105,6 +1111,9 @@ func endMessage(s *MessageProducerSegment) error {
 		DestinationName: s.DestinationName,
 		DestinationType: string(s.DestinationType),
 		DestinationTemp: s.DestinationTemporary,
+		Links:           s.Links,
+		SpanEventEvents: s.SpanEventEvents,
+		otelSpanID:      s.otelSpanID,
 	})
 }
 
