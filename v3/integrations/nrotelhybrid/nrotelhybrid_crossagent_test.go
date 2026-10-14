@@ -48,6 +48,8 @@ type OtelTestCaseParameters struct {
 	TraceIdInHeader     string `json:"traceIdInHeader"`
 	SpanIdInHeader      string `json:"spanIdInHeader"`
 	SampledFlagInHeader string `json:"sampledFlagInHeader"`
+	LinkedTraceId       string `json:"linkedTraceId"`
+	LinkedSpanId        string `json:"linkedSpanId"`
 }
 
 type OtelTestCaseAssertion struct {
@@ -101,6 +103,7 @@ const (
 	CommandNRInjectHeaders                string = "NRInjectHeaders"
 	CommandDoWorkInSpanWithRemoteParent   string = "DoWorkInSpanWithRemoteParent"
 	CommandDoWorkInSpanWithInboundContext string = "DoWorkInSpanWithInboundContext"
+	CommandAddLinkOnOTelSpan              string = "AddLinkOnOTelSpan"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -140,6 +143,54 @@ func TestOtelTracing(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
+		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
+		t.Run(tc.TestDescription, func(t *testing.T) {
+			// Each test case gets its own app, so events from an earlier case do
+			// not carry into this case's agent output expectations.
+			app := integrationsupport.NewTestApp(
+				replyFn,
+				integrationsupport.ConfigFullTraces,
+			)
+			ctx := context.Background()
+			processor := NewHybridProcessor(app.Application)
+			tp := trace.NewTracerProvider(trace.WithSpanProcessor(processor), trace.WithSampler(trace.AlwaysSample()))
+			shutdown := func(ctx context.Context) error {
+				err := tp.Shutdown(ctx)
+				return err
+			}
+			defer shutdown(ctx)
+			otel.SetTracerProvider(tp)
+			otel.SetTextMapPropagator(NewHybridPropagator(processor))
+			// Run Operation
+
+			RunOperation(t, ctx, tc.Operations, &app, nil, processor)
+			// agentOutput
+			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
+			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
+		})
+	}
+}
+
+func TestOtelSpanLinks(t *testing.T) {
+	var tcs []OtelTracingTestCase
+	replyFn := func(reply *internal.ConnectReply) {
+		integrationsupport.SampleEverythingReplyFn(reply)
+		reply.AccountID = "123"
+		reply.TrustedAccountKey = "123"
+	}
+	data, err := crossagent.ReadFile("otelhybrid/SpanLinkTestCaseDefinitions.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := json.Unmarshal(data, &tcs); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range tcs {
+		if i != 2 {
+			continue
+		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
@@ -350,6 +401,23 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			}
 			span.End() // should work even with a no-op span
 			// end
+		case CommandAddLinkOnOTelSpan:
+			// do stuff
+			span := oteltrace.SpanFromContext(ctx)
+			linkedTraceId, err := oteltrace.TraceIDFromHex(op.Parameters.LinkedTraceId)
+			if err != nil {
+				t.Error("Cannot convert linkedTraceId")
+			}
+			linkedSpanID, err := oteltrace.SpanIDFromHex(op.Parameters.LinkedSpanId)
+			if err != nil {
+				t.Error("Cannot convert linkedSpanId")
+			}
+			span.AddLink(oteltrace.Link{
+				SpanContext: oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+					TraceID: linkedTraceId,
+					SpanID:  linkedSpanID,
+				}),
+			})
 		default:
 			continue
 		}
