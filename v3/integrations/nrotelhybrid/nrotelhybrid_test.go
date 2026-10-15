@@ -400,6 +400,7 @@ func Test_nrotelhybridProcessor(t *testing.T) {
 	app := integrationsupport.NewTestApp(
 		integrationsupport.SampleEverythingReplyFn,
 		integrationsupport.ConfigFullTraces,
+		newrelic.ConfigOpenTelemetryEnabled(true),
 	)
 
 	tests := []struct {
@@ -788,10 +789,16 @@ func Test_nrotelhybridProcessor_switchSegmentType(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := NewHybridProcessor(&newrelic.Application{})
-			maps.Copy(p.segmentMap, tt.initialSegmentMap)
-			p.switchSegmentType(tt.spanID, tt.attributes, tt.spanKind)
+			if p != nil {
+				maps.Copy(p.segmentMap, tt.initialSegmentMap)
+				p.switchSegmentType(tt.spanID, tt.attributes, tt.spanKind)
+			}
 
-			seg, ok := p.segmentMap[tt.spanID]
+			var seg nrSegment
+			var ok bool
+			if p != nil {
+				seg, ok = p.segmentMap[tt.spanID]
+			}
 
 			if tt.want == nil {
 				if ok {
@@ -1124,6 +1131,7 @@ func Test_nrotelhybridProcessor_OnEnd_SpanEvents(t *testing.T) {
 			testApp := integrationsupport.NewTestApp(
 				integrationsupport.SampleEverythingReplyFn,
 				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
 			)
 
 			processor := NewHybridProcessor(testApp.Application)
