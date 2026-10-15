@@ -18,7 +18,110 @@ import (
 	"github.com/newrelic/go-agent/v3/internal/logger"
 	"github.com/newrelic/go-agent/v3/internal/sysinfo"
 	"github.com/newrelic/go-agent/v3/internal/utilization"
+	otellogsdk "go.opentelemetry.io/otel/log"
 )
+
+// OpenTelemetry log severity levels use the following enum type.
+// The internal byte values assigned here are arbitrary and are not
+// intended to map to the OpenTelemetry severity numbers; they are only
+// used to provide an underlying type to define the enum efficiently. The Otel
+// API uses integer constants for these and some string values that are computed
+// to represent them, so it makes sense to use these on our side.
+//
+// This is arranged so OtelLogLevelInfo is the zero value for the data type,
+// because the Otel spec defines this as the default logging level.
+type OtelLogLevelType byte
+
+const (
+	OtelLogLevelInfo OtelLogLevelType = iota
+	OtelLogLevelTrace
+	OtelLogLevelDebug
+	OtelLogLevelWarn
+	OtelLogLevelError
+	OtelLogLevelFatal
+	OtelLogLevelUndefined
+)
+
+// FromString sets the value of an Otel logging level enum based on
+// the given severity name, if possible. If the name is not valid,
+// no change is made to the enum's value and the return value
+// is false.
+func (l *OtelLogLevelType) FromString(severity string) bool {
+	for _, s := range []struct {
+		level OtelLogLevelType
+		name  string
+	}{
+		{OtelLogLevelInfo, "info"},
+		{OtelLogLevelTrace, "trace"},
+		{OtelLogLevelDebug, "debug"},
+		{OtelLogLevelWarn, "warn"},
+		{OtelLogLevelError, "error"},
+		{OtelLogLevelFatal, "fatal"},
+		{OtelLogLevelUndefined, "undefined"},
+	} {
+		if strings.EqualFold(severity, s.name) {
+			*l = s.level
+			return true
+		}
+	}
+	return false
+}
+
+// String() returns the name of the log severity level.
+func (l OtelLogLevelType) String() string {
+	switch l {
+	case OtelLogLevelInfo:
+		return "INFO"
+	case OtelLogLevelTrace:
+		return "TRACE"
+	case OtelLogLevelDebug:
+		return "DEBUG"
+	case OtelLogLevelWarn:
+		return "WARN"
+	case OtelLogLevelError:
+		return "ERROR"
+	case OtelLogLevelFatal:
+		return "FATAL"
+	default:
+		return "UNDEFINED"
+	}
+}
+
+// OtelSeverity returns the equivalent minimum Otel SDK severity code value for
+// this severity level.
+func (l OtelLogLevelType) OtelSeverity() otellogsdk.Severity {
+	switch l {
+	case OtelLogLevelInfo:
+		return otellogsdk.SeverityInfo
+	case OtelLogLevelTrace:
+		return otellogsdk.SeverityTrace
+	case OtelLogLevelDebug:
+		return otellogsdk.SeverityDebug
+	case OtelLogLevelWarn:
+		return otellogsdk.SeverityWarn
+	case OtelLogLevelError:
+		return otellogsdk.SeverityError
+	case OtelLogLevelFatal:
+		return otellogsdk.SeverityFatal
+	}
+	return otellogsdk.SeverityUndefined
+}
+
+func (l OtelLogLevelType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(l.String())
+}
+
+func (l *OtelLogLevelType) UnmarshalJSON(data []byte) error {
+	var t string
+
+	if err := json.Unmarshal(data, &t); err != nil {
+		return err
+	}
+	if !l.FromString(t) {
+		return fmt.Errorf("invalid log severity code \"%s\"", t)
+	}
+	return nil
+}
 
 // The type of profiling data to measure and report out, as an internal type.
 // These may be combined via | operators, or the constant ProfilingTypeAll may be
@@ -633,6 +736,31 @@ type Config struct {
 
 	// Security is used to post security configuration on UI.
 	Security interface{} `json:"Security,omitempty"`
+
+	// OpenTelemetry configures OTEL compatibility modes and features.
+	OpenTelemetry struct {
+		// Enabled controls the agent's OpenTelemetry compatibility mode. If true,
+		// we look for OTEL_* configuration variables in the environment (IFF we also
+		// are configured to scan the environment for configuration variables at all)
+		// and enables the other Otel SDK integration features.
+		Enabled bool
+		// AllowSDKDisable allows the Otel SDK to disable our functionality via the
+		// OTEL_SDK_DISABLED variable
+		AllowSDKDisable bool
+		// Loglevel sets the severity level for Otel log events we are accepting
+		// from the Otel SDK.
+		LogLevel OtelLogLevelType
+		// ServiceName sets the application name, overriding our own setting of the
+		// appliction name (as configured by the Otel SDK settings), but only if
+		// ServiceNameOverride is also true.
+		ServiceName string
+		// ServiceNameOverride allows ServiceName to override the native NR agent's
+		// application name setting when it's discovered and configured (although
+		// note that if ConfigAppName is executed later in the configuration sequence
+		// than the Otel configuration and/or environment variable configuration which
+		// did this, IT will have the final word).
+		ServiceNameOverride bool
+	}
 }
 
 // CodeLevelMetricsScope is a bit-encoded value. Each such value describes
