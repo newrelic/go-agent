@@ -520,6 +520,58 @@ func expectSpanEventsPartial(v internal.Validator, events *spanEvents, expect []
 	}
 }
 
+// expectSpanLinksPartial validates the SpanLink events, in the order they
+// were written, validating only the attributes specified in expect. A span
+// event writes its SpanLink events as sibling arrays after its own, so this
+// reads every stored span event, including transaction root spans.
+func expectSpanLinksPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
+	var actualLinks [][]map[string]interface{}
+	for _, e := range events.analyticsEvents.events {
+		event, ok := e.jsonWriter.(json.Marshaler)
+		if !ok {
+			v.Error("event does not implement json.Marshaler")
+			continue
+		}
+		js, err := event.MarshalJSON()
+		if nil != err {
+			v.Error("unable to marshal event", err)
+			continue
+		}
+		wrapped := append(append([]byte{'['}, js...), ']')
+		decoder := json.NewDecoder(bytes.NewReader(wrapped))
+		decoder.UseNumber()
+		var parts [][]map[string]interface{}
+		if err := decoder.Decode(&parts); nil != err {
+			v.Error("unable to parse event json", err)
+			continue
+		}
+		// parts[0] is the span itself, the rest are its links and events
+		for _, part := range parts {
+			if len(part) < 3 {
+				continue
+			}
+			if typ, _ := part[0]["type"].(string); typ == "SpanLink" {
+				actualLinks = append(actualLinks, part)
+			}
+		}
+	}
+	if len(actualLinks) != len(expect) {
+		v.Error("number of span links does not match", len(actualLinks), len(expect))
+		return
+	}
+	for i, e := range expect {
+		if nil != e.Intrinsics {
+			expectAttributesPartial(v, actualLinks[i][0], e.Intrinsics)
+		}
+		if nil != e.UserAttributes {
+			expectAttributesPartial(v, actualLinks[i][1], e.UserAttributes)
+		}
+		if nil != e.AgentAttributes {
+			expectAttributesPartial(v, actualLinks[i][2], e.AgentAttributes)
+		}
+	}
+}
+
 func expectError(v internal.Validator, err *tracedError, expect internal.WantError) {
 	validateStringField(v, "txnName", expect.TxnName, err.FinalName)
 	validateStringField(v, "klass", expect.Klass, err.Klass)

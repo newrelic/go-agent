@@ -87,6 +87,12 @@ type OtelTestCaseSpan struct {
 	LinkedTraceId string         `json:"linkedTraceId"`
 	LinkedSpanId  string         `json:"linkedSpanId"`
 	Type          string         `json:"type"`
+	Links         []OtelTestCaseLink `json:"links"`
+}
+
+type OtelTestCaseLink struct {
+	LinkedTraceId string `json:"linkedTraceId"`
+	LinkedSpanId  string `json:"linkedSpanId"`
 }
 
 type ExternalCall struct {
@@ -195,6 +201,7 @@ func TestOtelSpanLinks(t *testing.T) {
 			continue
 		}
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
+		expectedLinkEvents := createExpectedLinkEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
 			// not carry into this case's agent output expectations.
@@ -218,6 +225,7 @@ func TestOtelSpanLinks(t *testing.T) {
 			// agentOutput
 			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
 			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
+			app.ExpectSpanLinksPartial(t, expectedLinkEvents)
 		})
 	}
 }
@@ -501,6 +509,24 @@ func getSpanKind(spanKindStr string) oteltrace.SpanKind {
 
 	}
 	return oteltrace.SpanKindInternal
+}
+
+// createExpectedLinkEvents builds the expected SpanLink events from the links
+// of every span in the agent output, including entry point spans.
+func createExpectedLinkEvents(agentOutput OtelTestCaseAgentOutput) []internal.WantEvent {
+	var linkWantEvents []internal.WantEvent
+	for _, span := range agentOutput.Spans {
+		for _, link := range span.Links {
+			linkWantEvents = append(linkWantEvents, internal.WantEvent{
+				Intrinsics: map[string]interface{}{
+					"type":          "SpanLink",
+					"linkedTraceId": link.LinkedTraceId,
+					"linkedSpanId":  link.LinkedSpanId,
+				},
+			})
+		}
+	}
+	return linkWantEvents
 }
 
 func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantEvent, []internal.WantEvent) {

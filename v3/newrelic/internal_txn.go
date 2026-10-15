@@ -546,7 +546,6 @@ func (thd *thread) End(recovered interface{}) error {
 		for _, evt := range txn.SpanEvents {
 			// add links to otel traces
 			for i := range evt.SpanLinks {
-				evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID
 				if guid, ok := otelToGUID[evt.SpanLinks[i].spanID]; ok {
 					evt.SpanLinks[i].spanID = guid
 					evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID

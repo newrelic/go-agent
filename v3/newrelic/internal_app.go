@@ -713,6 +713,11 @@ func (app *app) ExpectSpanEventsPartial(t internal.Validator, want []internal.Wa
 	expectSpanEventsPartial(t, app.testHarvest.SpanEvents, want)
 }
 
+func (app *app) ExpectSpanLinksPartial(t internal.Validator, want []internal.WantEvent) {
+	t = extendValidator(t, "span links")
+	expectSpanLinksPartial(t, app.testHarvest.SpanEvents, want)
+}
+
 func (app *app) ExpectSpanEvents(t internal.Validator, want []internal.WantEvent) {
 	t = extendValidator(t, "spans events")
 	expectSpanEvents(t, app.testHarvest.SpanEvents, want)
