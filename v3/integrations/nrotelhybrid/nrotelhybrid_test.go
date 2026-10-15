@@ -788,17 +788,16 @@ func Test_nrotelhybridProcessor_switchSegmentType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewHybridProcessor(&newrelic.Application{})
-			if p != nil {
-				maps.Copy(p.segmentMap, tt.initialSegmentMap)
-				p.switchSegmentType(tt.spanID, tt.attributes, tt.spanKind)
-			}
+			a := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
+			)
+			p := NewHybridProcessor(a.Application)
+			maps.Copy(p.segmentMap, tt.initialSegmentMap)
+			p.switchSegmentType(tt.spanID, tt.attributes, tt.spanKind)
 
-			var seg nrSegment
-			var ok bool
-			if p != nil {
-				seg, ok = p.segmentMap[tt.spanID]
-			}
+			seg, ok := p.segmentMap[tt.spanID]
 
 			if tt.want == nil {
 				if ok {
