@@ -520,12 +520,12 @@ func expectSpanEventsPartial(v internal.Validator, events *spanEvents, expect []
 	}
 }
 
-// expectSpanLinksPartial validates the SpanLink events, in the order they
+// expectSpanLinksAndSpanEventsPartial validates the SpanLink events, in the order they
 // were written, validating only the attributes specified in expect. A span
 // event writes its SpanLink events as sibling arrays after its own, so this
 // reads every stored span event, including transaction root spans.
-func expectSpanLinksPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent) {
-	var actualLinks [][]map[string]interface{}
+func expectSpanLinksAndSpanEventsPartial(v internal.Validator, events *spanEvents, expect []internal.WantEvent, spanEventType string) {
+	var actualSpanEvents [][]map[string]interface{}
 	for _, e := range events.analyticsEvents.events {
 		event, ok := e.jsonWriter.(json.Marshaler)
 		if !ok {
@@ -550,24 +550,25 @@ func expectSpanLinksPartial(v internal.Validator, events *spanEvents, expect []i
 			if len(part) < 3 {
 				continue
 			}
-			if typ, _ := part[0]["type"].(string); typ == "SpanLink" {
-				actualLinks = append(actualLinks, part)
+			if typ, _ := part[0]["type"].(string); typ == spanEventType {
+				actualSpanEvents = append(actualSpanEvents, part)
 			}
 		}
 	}
-	if len(actualLinks) != len(expect) {
-		v.Error("number of span links does not match", len(actualLinks), len(expect))
+	if len(actualSpanEvents) != len(expect) {
+		errStr := fmt.Sprintf("number of %ss does not match")
+		v.Error(errStr, len(actualSpanEvents), len(expect))
 		return
 	}
 	for i, e := range expect {
 		if nil != e.Intrinsics {
-			expectAttributesPartial(v, actualLinks[i][0], e.Intrinsics)
+			expectAttributesPartial(v, actualSpanEvents[i][0], e.Intrinsics)
 		}
 		if nil != e.UserAttributes {
-			expectAttributesPartial(v, actualLinks[i][1], e.UserAttributes)
+			expectAttributesPartial(v, actualSpanEvents[i][1], e.UserAttributes)
 		}
 		if nil != e.AgentAttributes {
-			expectAttributesPartial(v, actualLinks[i][2], e.AgentAttributes)
+			expectAttributesPartial(v, actualSpanEvents[i][2], e.AgentAttributes)
 		}
 	}
 }

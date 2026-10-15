@@ -148,5 +148,5 @@ type Expect interface {
 
 	// ExpectSpanLinksPartial validates the SpanLink events that are written
 	// alongside the span events, checking only the attributes specified in want.
-	ExpectSpanLinksPartial(t Validator, want []WantEvent)
+	ExpectSpanLinksAndSpanEventsPartial(t Validator, want []WantEvent, spanEventType string)
 }

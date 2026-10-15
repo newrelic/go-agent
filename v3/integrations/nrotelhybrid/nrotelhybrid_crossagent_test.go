@@ -79,14 +79,14 @@ type OtelTestCaseTransaction struct {
 }
 
 type OtelTestCaseSpan struct {
-	Name          string         `json:"name"`
-	Category      string         `json:"category"`
-	ParentName    string         `json:"parentName"`
-	EntryPoint    bool           `json:"entryPoint"`
-	Attributes    map[string]any `json:"attributes"`
-	LinkedTraceId string         `json:"linkedTraceId"`
-	LinkedSpanId  string         `json:"linkedSpanId"`
-	Type          string         `json:"type"`
+	Name          string             `json:"name"`
+	Category      string             `json:"category"`
+	ParentName    string             `json:"parentName"`
+	EntryPoint    bool               `json:"entryPoint"`
+	Attributes    map[string]any     `json:"attributes"`
+	LinkedTraceId string             `json:"linkedTraceId"`
+	LinkedSpanId  string             `json:"linkedSpanId"`
+	Type          string             `json:"type"`
 	Links         []OtelTestCaseLink `json:"links"`
 }
 
@@ -196,10 +196,7 @@ func TestOtelSpanLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i, tc := range tcs {
-		if i != 0 {
-			continue
-		}
+	for _, tc := range tcs {
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		expectedLinkEvents := createExpectedLinkEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
@@ -225,7 +222,7 @@ func TestOtelSpanLinks(t *testing.T) {
 			// agentOutput
 			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
 			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
-			app.ExpectSpanLinksPartial(t, expectedLinkEvents)
+			app.ExpectSpanLinksAndSpanEventsPartial(t, expectedLinkEvents, "SpanLink")
 		})
 	}
 }
