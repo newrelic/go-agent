@@ -22,7 +22,7 @@ type txnMapEntry struct {
 
 type nrSegment interface {
 	End()
-	AddAttribute(key string, val interface{})
+	AddAttribute(key string, val any)
 	AddLink(spanID, traceID string, start time.Time)
 	AddOtelSpanID(spanID string)
 	AddSpanEventEvent(name string, start time.Time, attrs newrelic.SpanEventAttributes)
@@ -37,6 +37,10 @@ type nrotelhybridProcessor struct {
 }
 
 func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
+	conf, _ := app.Config()
+	if !conf.OpenTelemetry.Enabled {
+		return nil
+	}
 	return &nrotelhybridProcessor{
 		app:        app,
 		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
@@ -46,6 +50,9 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 }
 
 func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
+	if p == nil {
+		return
+	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// for now pretending like everything is enabled
@@ -54,14 +61,11 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	//fmt.Printf("*** OnStart trace %v, span %x, links=%d\n", s.SpanContext().TraceID(), s.SpanContext().SpanID(), len(s.Links()))
 	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent()); isTxn || len(s.Links()) > 0 {
-		//fmt.Println("*** starting transaction for it")
 		p.startTransaction(s, isWeb)
 		return
 	}
 	// start the segment with the txn entry
-	//fmt.Println("*** starting segment with the txn entry")
 	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
 		if entry := entries[len(entries)-1]; entry.txn != nil {
 			p.startSegment(s, entry)
@@ -70,8 +74,10 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 }
 
 func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bool) {
+	if p == nil {
+		return
+	}
 	txn := p.app.StartTransaction(s.Name())
-	//fmt.Printf("*** startTransaction: %s\n", s.Name())
 	if isWeb {
 		var fullURL string
 		for _, attr := range s.Attributes() {
@@ -88,10 +94,12 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 	}
 	traceID := s.SpanContext().TraceID()
 	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID(), hasLinks: (len(s.Links()) > 0)})
-	//fmt.Printf("*** recorded %v %v %v\n", traceID, s.SpanContext().SpanID(), len(s.Links()))
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
+	if p == nil {
+		return
+	}
 	seg := entry.txn.StartSegment(s.Name())
 	otelSpanID := s.SpanContext().SpanID()
 	seg.AddOtelSpanID(otelSpanID.String())
@@ -99,6 +107,9 @@ func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMap
 }
 
 func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
+	if p == nil {
+		return
+	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// use the trace id from trace.ReadOnlySpan to end the transaction
@@ -106,21 +117,11 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	spanID := s.SpanContext().SpanID()
 	links := s.Links()
 	events := s.Events()
-	//if len(links) > 0 {
-	//fmt.Println("Links exist:")
-	//for i, linkData := range links {
-	//fmt.Printf("%d - span context span=%s trace=%s valid=%v remote=%v timestamp=%v\n", i, linkData.SpanContext.SpanID(), linkData.SpanContext.TraceID(), linkData.SpanContext.IsValid(), linkData.SpanContext.IsRemote(), s.StartTime())
-	//for _, kv := range linkData.Attributes {
-	//fmt.Printf("  %s=%v\n", kv.Key, kv.Value.String())
-	//}
-	//}
-	//}
 
 	var transactionsToEnd []*newrelic.Transaction
 	defer func() {
 		for _, txn := range transactionsToEnd {
 			if txn != nil {
-				//fmt.Printf("*** ending txn %v\n", txn.Name())
 				txn.End()
 			}
 		}
@@ -147,19 +148,13 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 	// otherwise end segment if it exists in the map
 	p.switchSegmentType(spanID, s.Attributes(), s.SpanKind())
 
-	//if len(links) > 0 {
-	//fmt.Println("*** there are links to record")
-	//}
-	//fmt.Printf("*** Searching for %v in segment map\n", spanID)
 	if seg, ok := p.segmentMap[spanID]; ok && seg != nil {
 		// find type of segment to switch segment type and add attributes
-		//fmt.Println("*** found")
 		if len(links) > 0 {
 			for _, link := range links {
 				seg.AddLink(link.SpanContext.SpanID().String(),
 					link.SpanContext.TraceID().String(),
 					s.StartTime())
-				//fmt.Println("*** Added link to segment")
 			}
 		}
 		if len(events) > 0 {
@@ -187,6 +182,9 @@ func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
 // isTransaction reports whether the span should start/continue a transaction (isTxn),
 // and whether that transaction is a web transaction (isWeb).
 func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext) (isTxn, isWeb bool) {
+	if p == nil {
+		return false, false
+	}
 	if parent.IsRemote() {
 		// any span with a remote parent is a transaction
 		switch kind {
@@ -211,6 +209,9 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 }
 
 func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attributes []attribute.KeyValue, spanKind oteltrace.SpanKind) {
+	if p == nil {
+		return
+	}
 	segInterface, ok := p.segmentMap[spanID]
 	if !ok {
 		return
@@ -252,6 +253,9 @@ func (p *nrotelhybridProcessor) switchSegmentType(spanID oteltrace.SpanID, attri
 }
 
 func (p *nrotelhybridProcessor) addSegmentAttributes(seg nrSegment, attributes []attribute.KeyValue, attrMap map[string]string) {
+	if p == nil {
+		return
+	}
 	switch s := seg.(type) {
 	case *newrelic.DatastoreSegment:
 		for _, attribute := range attributes {
@@ -333,7 +337,7 @@ func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID ote
 // event is actually serialized.
 type otelEventAttributes []attribute.KeyValue
 
-func (a otelEventAttributes) WriteAttributes(write func(key string, val interface{})) {
+func (a otelEventAttributes) WriteAttributes(write func(key string, val any)) {
 	for _, attr := range a {
 		write(string(attr.Key), extractAttributeValue(attr.Value))
 	}
