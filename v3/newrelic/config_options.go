@@ -368,8 +368,7 @@ func ConfigOpenTelemetryEnabled(enabled bool) ConfigOption {
 // does. See ConfigOpenTelemetryLogLevel for one that operates on the manifest constant
 // values for the setting.
 func ConfigOpenTelemetryLogLevelName(severity string) ConfigOption {
-	level := OtelLogLevelUndefined
-	level.FromString(severity)
+	level, _ := OtelLogLevelFromName(severity)
 	return ConfigOpenTelemetryLogLevel(level)
 }
 
@@ -947,8 +946,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 				}
 			}
 			if env := getenv("OTEL_LOG_LEVEL"); env != "" {
-				ll := OtelLogLevelUndefined
-				ll.FromString(env)
+				ll, _ := OtelLogLevelFromName(env)
 				cfg.OpenTelemetry.LogLevel = ll
 			}
 		}

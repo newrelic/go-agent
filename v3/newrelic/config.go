@@ -42,6 +42,15 @@ const (
 	OtelLogLevelUndefined
 )
 
+// OtelLogLevelFromName creates and returns a new OtelLogLevelType value
+// from the named severity. If the name isn't recognized, it returns the
+// type for an undefined severity type and false as the second value.
+func OtelLogLevelFromName(severity string) (OtelLogLevelType, bool) {
+	ll := OtelLogLevelUndefined
+	isValid := ll.FromString(severity)
+	return ll, isValid
+}
+
 // FromString sets the value of an Otel logging level enum based on
 // the given severity name, if possible. If the name is not valid,
 // no change is made to the enum's value and the return value
