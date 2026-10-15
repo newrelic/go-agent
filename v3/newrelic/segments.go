@@ -81,7 +81,7 @@ func (se *SpanEventEvent) WriteJSON(buf *bytes.Buffer, e *spanEvent) {
 	} else {
 		w.intField("timestamp", timeToIntMillis(se.startTime))
 	}
-	w.stringField("id", e.GUID)
+	w.stringField("span.id", e.GUID)
 	w.stringField("trace.id", e.TraceID)
 	buf.WriteByte('}')
 	buf.WriteByte(',')

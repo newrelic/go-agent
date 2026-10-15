@@ -556,7 +556,7 @@ func expectSpanLinksAndSpanEventsPartial(v internal.Validator, events *spanEvent
 		}
 	}
 	if len(actualSpanEvents) != len(expect) {
-		errStr := fmt.Sprintf("number of %ss does not match")
+		errStr := fmt.Sprintf("number of %ss does not match", spanEventType)
 		v.Error(errStr, len(actualSpanEvents), len(expect))
 		return
 	}

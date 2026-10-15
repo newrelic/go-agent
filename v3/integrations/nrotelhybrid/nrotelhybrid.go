@@ -219,12 +219,12 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 				}
 			}
 			if len(events) > 0 {
-				for i, event := range events {
-					if i > 99 {
+				for j, event := range events {
+					if j > 99 {
 						p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 						continue
 					}
-					entries[i].txn.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
+					entries[i].txn.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
 				}
 			}
 			transactionsToEnd = append(transactionsToEnd, entries[i].txn)
@@ -259,7 +259,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 					continue
 				}
-				segEntry.seg.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
+				segEntry.seg.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
 			}
 		}
 		segEntry.seg.End()
