@@ -500,14 +500,15 @@ func (thd *thread) End(recovered interface{}) error {
 
 	if txn.shouldCollectSpanEvents() {
 		root := &spanEvent{
-			GUID:         txn.GetRootSpanID(),
-			Timestamp:    txn.Start,
-			Duration:     txn.Duration,
-			Name:         txn.FinalName,
-			TxnName:      txn.FinalName,
-			Category:     spanCategoryGeneric,
-			IsEntrypoint: true,
-			SpanLinks:    txn.Links,
+			GUID:            txn.GetRootSpanID(),
+			Timestamp:       txn.Start,
+			Duration:        txn.Duration,
+			Name:            txn.FinalName,
+			TxnName:         txn.FinalName,
+			Category:        spanCategoryGeneric,
+			IsEntrypoint:    true,
+			SpanLinks:       txn.Links,
+			SpanEventEvents: txn.SpanEventEvents,
 		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
@@ -599,6 +600,20 @@ func (txn *txn) addLink(spanID, traceID string, start time.Time) error {
 		spanID:    spanID,
 		traceID:   traceID,
 		startTime: start,
+	})
+	return nil
+}
+
+func (txn *txn) addSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) error {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return errAlreadyEnded
+	}
+	txn.SpanEventEvents = append(txn.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
 	})
 	return nil
 }

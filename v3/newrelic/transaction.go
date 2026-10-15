@@ -610,6 +610,13 @@ func (txn *Transaction) AddLink(spanID, traceID string, start time.Time) {
 	txn.thread.logAPIError(txn.thread.addLink(spanID, traceID, start), "add link", nil)
 }
 
+func (txn *Transaction) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
+	if nilTransaction(txn) {
+		return
+	}
+	txn.thread.logAPIError(txn.thread.addSpanEventEvent(name, start, attrs), "add span event", nil)
+}
+
 const (
 	// DistributedTraceNewRelicHeader is the header used by New Relic agents
 	// for automatic trace payload instrumentation.

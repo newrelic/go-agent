@@ -50,6 +50,11 @@ type OtelTestCaseParameters struct {
 	SampledFlagInHeader string `json:"sampledFlagInHeader"`
 	LinkedTraceId       string `json:"linkedTraceId"`
 	LinkedSpanId        string `json:"linkedSpanId"`
+	EventName           string `json:"eventName"`
+	EventAttributes     struct {
+		EventAttribute string `json:"eventAttribute"`
+		EventNumber    int    `json:"eventNumber"`
+	} `json:"attributes"`
 }
 
 type OtelTestCaseAssertion struct {
@@ -79,20 +84,26 @@ type OtelTestCaseTransaction struct {
 }
 
 type OtelTestCaseSpan struct {
-	Name          string             `json:"name"`
-	Category      string             `json:"category"`
-	ParentName    string             `json:"parentName"`
-	EntryPoint    bool               `json:"entryPoint"`
-	Attributes    map[string]any     `json:"attributes"`
-	LinkedTraceId string             `json:"linkedTraceId"`
-	LinkedSpanId  string             `json:"linkedSpanId"`
-	Type          string             `json:"type"`
-	Links         []OtelTestCaseLink `json:"links"`
+	Name          string              `json:"name"`
+	Category      string              `json:"category"`
+	ParentName    string              `json:"parentName"`
+	EntryPoint    bool                `json:"entryPoint"`
+	Attributes    map[string]any      `json:"attributes"`
+	LinkedTraceId string              `json:"linkedTraceId"`
+	LinkedSpanId  string              `json:"linkedSpanId"`
+	Type          string              `json:"type"`
+	Links         []OtelTestCaseLink  `json:"links"`
+	Events        []OtelTestCaseEvent `json:"events"`
 }
 
 type OtelTestCaseLink struct {
 	LinkedTraceId string `json:"linkedTraceId"`
 	LinkedSpanId  string `json:"linkedSpanId"`
+}
+
+type OtelTestCaseEvent struct {
+	Name       string
+	Attributes map[string]any
 }
 
 type ExternalCall struct {
@@ -113,6 +124,7 @@ const (
 	CommandDoWorkInSpanWithRemoteParent   string = "DoWorkInSpanWithRemoteParent"
 	CommandDoWorkInSpanWithInboundContext string = "DoWorkInSpanWithInboundContext"
 	CommandAddLinkOnOTelSpan              string = "AddLinkOnOTelSpan"
+	CommandAddEventOnOTelSpan             string = "AddEventOnOTelSpan"
 
 	// Operators
 	OperatorNotValid string = "NotValid"
@@ -199,6 +211,7 @@ func TestOtelSpanLinks(t *testing.T) {
 	for _, tc := range tcs {
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		expectedLinkEvents := createExpectedLinkEvents(tc.AgentOutput)
+		expectedSpanEventEvents := createExpectedSpanEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
 			// not carry into this case's agent output expectations.
@@ -223,6 +236,7 @@ func TestOtelSpanLinks(t *testing.T) {
 			app.ExpectTxnEventsPartial(t, expectedTxnEvents)
 			app.ExpectSpanEventsPartial(t, expectedSpanEvents)
 			app.ExpectSpanLinksAndSpanEventsPartial(t, expectedLinkEvents, "SpanLink")
+			app.ExpectSpanLinksAndSpanEventsPartial(t, expectedSpanEventEvents, "SpanEvent")
 		})
 	}
 }
@@ -410,7 +424,6 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			span.End() // should work even with a no-op span
 			// end
 		case CommandAddLinkOnOTelSpan:
-			// do stuff
 			span := oteltrace.SpanFromContext(ctx)
 			linkedTraceId, err := oteltrace.TraceIDFromHex(op.Parameters.LinkedTraceId)
 			if err != nil {
@@ -426,6 +439,17 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 					SpanID:  linkedSpanID,
 				}),
 			})
+		case CommandAddEventOnOTelSpan:
+			span := oteltrace.SpanFromContext(ctx)
+			var attrs []attribute.KeyValue
+			// these next checks will not add zero values to the WithAttributes
+			if op.Parameters.EventAttributes.EventAttribute != "" {
+				attrs = append(attrs, attribute.String("eventAttribute", op.Parameters.EventAttributes.EventAttribute))
+			}
+			if op.Parameters.EventAttributes.EventNumber != 0 {
+				attrs = append(attrs, attribute.Int("eventNumber", op.Parameters.EventAttributes.EventNumber))
+			}
+			span.AddEvent(op.Parameters.EventName, oteltrace.WithAttributes(attrs...))
 		default:
 			continue
 		}
@@ -524,6 +548,29 @@ func createExpectedLinkEvents(agentOutput OtelTestCaseAgentOutput) []internal.Wa
 		}
 	}
 	return linkWantEvents
+}
+
+func createExpectedSpanEvents(agentOutput OtelTestCaseAgentOutput) []internal.WantEvent {
+	var eventWantEvents []internal.WantEvent
+	for _, span := range agentOutput.Spans {
+		for _, event := range span.Events {
+			wantEvent := internal.WantEvent{
+				Intrinsics: map[string]interface{}{
+					"type": "SpanEvent",
+					"name": event.Name,
+				},
+			}
+			wantEvent.UserAttributes = make(map[string]interface{})
+			if val, ok := event.Attributes["eventAttribute"]; ok {
+				wantEvent.UserAttributes["eventAttribute"] = val
+			}
+			if val, ok := event.Attributes["eventNumber"]; ok {
+				wantEvent.UserAttributes["eventNumber"] = val
+			}
+			eventWantEvents = append(eventWantEvents, wantEvent)
+		}
+	}
+	return eventWantEvents
 }
 
 func createExpectedEvents(agentOutput OtelTestCaseAgentOutput) ([]internal.WantEvent, []internal.WantEvent) {
