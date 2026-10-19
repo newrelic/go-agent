@@ -1,19 +1,22 @@
 module github.com/newrelic/go-agent/v3
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3
 	github.com/nsf/jsondiff v0.0.0-20260207060731-8e8d90c4c0ac
+	go.opentelemetry.io/otel/log v1.47.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.11
 )
 
 require (
-	golang.org/x/net v0.49.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	go.opentelemetry.io/otel v1.47.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 )
 
 retract (
