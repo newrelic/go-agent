@@ -500,13 +500,15 @@ func (thd *thread) End(recovered interface{}) error {
 
 	if txn.shouldCollectSpanEvents() {
 		root := &spanEvent{
-			GUID:         txn.GetRootSpanID(),
-			Timestamp:    txn.Start,
-			Duration:     txn.Duration,
-			Name:         txn.FinalName,
-			TxnName:      txn.FinalName,
-			Category:     spanCategoryGeneric,
-			IsEntrypoint: true,
+			GUID:            txn.GetRootSpanID(),
+			Timestamp:       txn.Start,
+			Duration:        txn.Duration,
+			Name:            txn.FinalName,
+			TxnName:         txn.FinalName,
+			Category:        spanCategoryGeneric,
+			IsEntrypoint:    true,
+			SpanLinks:       txn.Links,
+			SpanEventEvents: txn.SpanEventEvents,
 		}
 		root.AgentAttributes.addAgentAttrs(txn.Attrs.Agent)
 		root.UserAttributes.addUserAttrs(txn.Attrs.user)
@@ -545,7 +547,6 @@ func (thd *thread) End(recovered interface{}) error {
 		for _, evt := range txn.SpanEvents {
 			// add links to otel traces
 			for i := range evt.SpanLinks {
-				evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID
 				if guid, ok := otelToGUID[evt.SpanLinks[i].spanID]; ok {
 					evt.SpanLinks[i].spanID = guid
 					evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID
@@ -585,6 +586,35 @@ func (txn *txn) AddUserID(userID string) error {
 	}
 
 	txn.Attrs.Agent.Add(AttributeUserID, userID, nil)
+	return nil
+}
+
+func (txn *txn) addLink(spanID, traceID string, start time.Time) error {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return errAlreadyEnded
+	}
+
+	txn.Links = append(txn.Links, LinkedSpan{
+		spanID:    spanID,
+		traceID:   traceID,
+		startTime: start,
+	})
+	return nil
+}
+
+func (txn *txn) addSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) error {
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return errAlreadyEnded
+	}
+	txn.SpanEventEvents = append(txn.SpanEventEvents, SpanEventEvent{
+		name:       name,
+		startTime:  start,
+		attributes: attrs,
+	})
 	return nil
 }
 
@@ -939,7 +969,7 @@ func endBasic(s *Segment) error {
 	if txn.finished {
 		err = errAlreadyEnded
 	} else {
-		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name)
+		err = endBasicSegment(&txn.txnData, thd.thread, s.StartTime.start, time.Now(), s.Name, s.Links, s.SpanEventEvents, s.otelSpanID)
 	}
 	txn.Unlock()
 	return err
@@ -993,6 +1023,9 @@ func endDatastore(s *DatastoreSegment) error {
 		PortPathOrID:       s.PortPathOrID,
 		Database:           s.DatabaseName,
 		ThisHost:           txn.appRun.Config.hostname,
+		Links:              s.Links,
+		SpanEventEvents:    s.SpanEventEvents,
+		otelSpanID:         s.otelSpanID,
 	})
 }
 
@@ -1048,17 +1081,20 @@ func endExternal(s *ExternalSegment) error {
 		return err
 	}
 	return endExternalSegment(endExternalParams{
-		TxnData:    &txn.txnData,
-		Thread:     thd.thread,
-		Start:      s.StartTime.start,
-		Now:        time.Now(),
-		Logger:     txn.Config.Logger,
-		Response:   s.Response,
-		URL:        u,
-		Host:       s.Host,
-		Library:    s.Library,
-		Method:     externalSegmentMethod(s),
-		StatusCode: s.statusCode,
+		TxnData:         &txn.txnData,
+		Thread:          thd.thread,
+		Start:           s.StartTime.start,
+		Now:             time.Now(),
+		Logger:          txn.Config.Logger,
+		Response:        s.Response,
+		URL:             u,
+		Host:            s.Host,
+		Library:         s.Library,
+		Method:          externalSegmentMethod(s),
+		StatusCode:      s.statusCode,
+		Links:           s.Links,
+		SpanEventEvents: s.SpanEventEvents,
+		otelSpanID:      s.otelSpanID,
 	})
 }
 
@@ -1089,6 +1125,9 @@ func endMessage(s *MessageProducerSegment) error {
 		DestinationName: s.DestinationName,
 		DestinationType: string(s.DestinationType),
 		DestinationTemp: s.DestinationTemporary,
+		Links:           s.Links,
+		SpanEventEvents: s.SpanEventEvents,
+		otelSpanID:      s.otelSpanID,
 	})
 }
 

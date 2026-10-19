@@ -1,0 +1,423 @@
+[
+  {
+    "testDescription": "OpenTelemetry API can add a link to a span within a transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInTransaction",
+        "parameters": {
+          "transactionName": "Foo"
+        },
+        "childOperations": [
+          {
+            "command": "DoWorkInSpan",
+            "parameters": {
+              "spanName": "Bar",
+              "spanKind": "Internal"
+            },
+            "childOperations": [
+              {
+                "command": "AddLinkOnOTelSpan",
+                "parameters": {
+                  "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+                  "linkedSpanId": "b7ad6b7169203331"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Bar",
+          "category": "generic",
+          "parentName": "Foo",
+          "links": [
+            {
+              "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+              "linkedSpanId": "b7ad6b7169203331"
+            }
+          ]
+        },
+        {
+          "name": "Foo",
+          "category": "generic",
+          "entryPoint": true,
+          "links": []
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "OpenTelemetry API can add multiple links to a single span",
+
+    "operations": [
+      {
+        "command": "DoWorkInTransaction",
+        "parameters": {
+          "transactionName": "Foo"
+        },
+        "childOperations": [
+          {
+            "command": "DoWorkInSpan",
+            "parameters": {
+              "spanName": "Bar",
+              "spanKind": "Internal"
+            },
+            "childOperations": [
+              {
+                "command": "AddLinkOnOTelSpan",
+                "parameters": {
+                  "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+                  "linkedSpanId": "b7ad6b7169203331"
+                }
+              },
+              {
+                "command": "AddLinkOnOTelSpan",
+                "parameters": {
+                  "linkedTraceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+                  "linkedSpanId": "00f067aa0ba902b7"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Bar",
+          "links": [
+            {
+              "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+              "linkedSpanId": "b7ad6b7169203331"
+            },
+            {
+              "linkedTraceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+              "linkedSpanId": "00f067aa0ba902b7"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "OpenTelemetry API can add a link to a span that starts a transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInSpanWithRemoteParent",
+        "parameters": {
+          "spanName": "Foo",
+          "spanKind": "Server"
+        },
+        "childOperations": [
+          {
+            "command": "AddLinkOnOTelSpan",
+            "parameters": {
+              "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+              "linkedSpanId": "b7ad6b7169203331"
+            }
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Foo",
+          "category": "generic",
+          "entryPoint": true,
+          "links": [
+            {
+              "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+              "linkedSpanId": "b7ad6b7169203331"
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "Links are not recorded for a span that is not recorded because there is no transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInSpan",
+        "parameters": {
+          "spanName": "Bar",
+          "spanKind": "Internal"
+        },
+        "childOperations": [
+          {
+            "command": "AddLinkOnOTelSpan",
+            "parameters": {
+              "linkedTraceId": "0af7651916cd43dd8448eb211c80319c",
+              "linkedSpanId": "b7ad6b7169203331"
+            }
+          }
+        ],
+        "assertions": [
+          {
+            "description": "There should be no transaction",
+            "rule": {
+              "operator": "NotValid",
+              "parameters": {
+                "object": "currentTransaction"
+              }
+            }
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [],
+      "spans": []
+    }
+  },
+
+  {
+    "testDescription": "OpenTelemetry API can add an event to a span within a transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInTransaction",
+        "parameters": {
+          "transactionName": "Foo"
+        },
+        "childOperations": [
+          {
+            "command": "DoWorkInSpan",
+            "parameters": {
+              "spanName": "Bar",
+              "spanKind": "Internal"
+            },
+            "childOperations": [
+              {
+                "command": "AddEventOnOTelSpan",
+                "parameters": {
+                  "eventName": "MyEvent",
+                  "attributes": {
+                    "eventAttribute": "someValue"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Bar",
+          "category": "generic",
+          "parentName": "Foo",
+          "events": [
+            {
+              "name": "MyEvent",
+              "attributes": {
+                "eventAttribute": "someValue"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Foo",
+          "category": "generic",
+          "entryPoint": true,
+          "events": []
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "OpenTelemetry API can add multiple events to a single span",
+
+    "operations": [
+      {
+        "command": "DoWorkInTransaction",
+        "parameters": {
+          "transactionName": "Foo"
+        },
+        "childOperations": [
+          {
+            "command": "DoWorkInSpan",
+            "parameters": {
+              "spanName": "Bar",
+              "spanKind": "Internal"
+            },
+            "childOperations": [
+              {
+                "command": "AddEventOnOTelSpan",
+                "parameters": {
+                  "eventName": "FirstEvent",
+                  "attributes": {
+                    "eventNumber": 1
+                  }
+                }
+              },
+              {
+                "command": "AddEventOnOTelSpan",
+                "parameters": {
+                  "eventName": "SecondEvent",
+                  "attributes": {
+                    "eventNumber": 2
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Bar",
+          "events": [
+            {
+              "name": "FirstEvent",
+              "attributes": {
+                "eventNumber": 1
+              }
+            },
+            {
+              "name": "SecondEvent",
+              "attributes": {
+                "eventNumber": 2
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "OpenTelemetry API can add an event to a span that starts a transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInSpanWithRemoteParent",
+        "parameters": {
+          "spanName": "Foo",
+          "spanKind": "Server"
+        },
+        "childOperations": [
+          {
+            "command": "AddEventOnOTelSpan",
+            "parameters": {
+              "eventName": "MyEvent",
+              "attributes": {
+                "eventAttribute": "someValue"
+              }
+            }
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [
+        {
+          "name": "Foo"
+        }
+      ],
+      "spans": [
+        {
+          "name": "Foo",
+          "category": "generic",
+          "entryPoint": true,
+          "events": [
+            {
+              "name": "MyEvent",
+              "attributes": {
+                "eventAttribute": "someValue"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+
+  {
+    "testDescription": "Events are not recorded for a span that is not recorded because there is no transaction",
+
+    "operations": [
+      {
+        "command": "DoWorkInSpan",
+        "parameters": {
+          "spanName": "Bar",
+          "spanKind": "Internal"
+        },
+        "childOperations": [
+          {
+            "command": "AddEventOnOTelSpan",
+            "parameters": {
+              "eventName": "MyEvent",
+              "attributes": {
+                "eventAttribute": "someValue"
+              }
+            }
+          }
+        ],
+        "assertions": [
+          {
+            "description": "There should be no transaction",
+            "rule": {
+              "operator": "NotValid",
+              "parameters": {
+                "object": "currentTransaction"
+              }
+            }
+          }
+        ]
+      }
+    ],
+
+    "agentOutput": {
+      "transactions": [],
+      "spans": []
+    }
+  }
+]
