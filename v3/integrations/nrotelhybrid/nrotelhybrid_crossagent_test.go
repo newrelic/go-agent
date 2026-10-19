@@ -171,6 +171,7 @@ func TestOtelTracing(t *testing.T) {
 			app := integrationsupport.NewTestApp(
 				replyFn,
 				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
 			)
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
@@ -218,6 +219,7 @@ func TestOtelSpanLinks(t *testing.T) {
 			app := integrationsupport.NewTestApp(
 				replyFn,
 				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
 			)
 			ctx := context.Background()
 			processor := NewHybridProcessor(app.Application)
