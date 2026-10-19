@@ -990,7 +990,12 @@ func Test_nrotelhybridProcessor_addSegmentAttributes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewHybridProcessor(&newrelic.Application{})
+			app := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
+			)
+			p := NewHybridProcessor(app.Application)
 			seg := &fakeSegment{}
 			p.addSegmentAttributes(seg, tt.attributes, tt.attrMap)
 
@@ -1040,7 +1045,12 @@ func Test_addSegmentAttributes_DatastoreSegment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewHybridProcessor(&newrelic.Application{})
+			app := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
+			)
+			p := NewHybridProcessor(app.Application)
 			seg := &newrelic.DatastoreSegment{}
 			p.addSegmentAttributes(seg, tt.attributes, OTELToNRDBAttributeMap)
 
@@ -1103,7 +1113,12 @@ func Test_addSegmentAttributes_MessageProducerSegment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewHybridProcessor(&newrelic.Application{})
+			app := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
+			)
+			p := NewHybridProcessor(app.Application)
 			seg := &newrelic.MessageProducerSegment{}
 			p.addSegmentAttributes(seg, tt.attributes, OTELToNRMessagingProducerAttributeMap)
 
@@ -1143,7 +1158,12 @@ func Test_addSegmentAttributes_ExternalSegment(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := NewHybridProcessor(&newrelic.Application{})
+			app := integrationsupport.NewTestApp(
+				integrationsupport.SampleEverythingReplyFn,
+				integrationsupport.ConfigFullTraces,
+				newrelic.ConfigOpenTelemetryEnabled(true),
+			)
+			p := NewHybridProcessor(app.Application)
 			seg := &newrelic.ExternalSegment{}
 			p.addSegmentAttributes(seg, tt.attributes, OTELToNRHTTPAttributeMap)
 
