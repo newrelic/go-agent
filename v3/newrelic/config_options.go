@@ -346,6 +346,68 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 	}
 }
 
+// ConfigOpenTelemetryEnabled enables the Open Telemetry integration package and
+// associated configuration, including the OTEL_* environment variables (if, and only if,
+// ConfigFromEnvironment() is also called).
+func ConfigOpenTelemetryEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.OpenTelemetry.Enabled = enabled
+	}
+}
+
+// ConfigOpenTelemetryLogLevelName provides an API configuration to set the Otel SDK log level
+// setting that is usually set via the OTEL_LOG_LEVEL environment variable. If
+// ConfigFromEnvironment() is given, and OTEL_LOG_LEVEL is present in the environment,
+// that will set this value. That, and this API function, are taken in the order they
+// are executed, so the last one to run will be the one which will have made the setting
+// which will persist going forward.
+//
+// If the name is not valid, the severity will be set to "UNDEFINED".
+//
+// This function sets the log severity level by name, just as the environment variable
+// does. See ConfigOpenTelemetryLogLevel for one that operates on the manifest constant
+// values for the setting.
+func ConfigOpenTelemetryLogLevelName(severity string) ConfigOption {
+	level, _ := OtelLogLevelFromName(severity)
+	return ConfigOpenTelemetryLogLevel(level)
+}
+
+// ConfigOpenTelemetryLogLevel provides an API configuration to set the Otel SDK log level
+// setting that is usually set via the OTEL_LOG_LEVEL environment variable. If
+// ConfigFromEnvironment() is given, and OTEL_LOG_LEVEL is present in the environment,
+// that will set this value. That, and this API function, are taken in the order they
+// are executed, so the last one to run will be the one which will have made the setting
+// which will persist going forward.
+func ConfigOpenTelemetryLogLevel(severity OtelLogLevelType) ConfigOption {
+	return func(cfg *Config) {
+		cfg.OpenTelemetry.LogLevel = severity
+	}
+}
+
+// ConfigOpenTelemetryAllowServiceNameOverride enables the Otel SDK configuration
+// to override the application name via the OTEL_SERVICE_NAME environment variable.
+// Normally, the presence of this variable wouldn't change the application name since
+// we have our own local agent setting for that, but if you enable this setting,
+// the OpenTelemetry setting will override ConfigAppName or NEW_RELIC_APP_NAME.
+// Note, however, that this merely enables this, it doesn't establish precedence, so
+// if ConfigAppName appears later in the configuration sequence, it will override the
+// previous application name settings again.
+func ConfigOpenTelemetryAllowServiceNameOverride(enable bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.OpenTelemetry.ServiceNameOverride = enable
+	}
+}
+
+// ConfigOpenTelemetryAllowSDKDisable tells the agent to respect the Otel environment
+// variable OTEL_SDK_DISABLED if present in the environment (and we're reading environment
+// variables via ConfigFromEnvironment()). This allows the Otel SDK config settings
+// themselves to disable our Otel compatibility mode even if we've enabled it.
+func ConfigOpenTelemetryAllowSDKDisable(enable bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.OpenTelemetry.AllowSDKDisable = enable
+	}
+}
+
 // EXPERIMENTAL 4/27/2026.  Use with caution.
 // ConfigAppLogDecoratingWithinMessage enables or disables the location of the
 // local log decorating string within a log. If local log decorating or application
@@ -606,56 +668,63 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 
 // ConfigFromEnvironment populates the config based on environment variables:
 //
-//		NEW_RELIC_APP_NAME                                			sets AppName
-//		NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
-//		NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
-//		NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
-//		NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
-//		NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
-//		NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
-//		NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
-//	 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
-//		NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
-//		NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
-//		NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
-//		NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
-//		NEW_RELIC_HOST                                    			sets Host
-//		NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
-//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
-//		NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
-//		NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
-//		NEW_RELIC_LICENSE_KEY                             			sets License
-//		NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
-//		NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
-//		NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
-//		NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
-//		NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
-//		NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
-//		NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
-//		NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
-//	 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
-//	 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
-//	 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED sets CustomInsightsEvents.CustomAttributesEnabled to enable sending application custom attributes with forwarded logs.
-//		NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES	sets CustomInsightsEvents.CustomAttributesValues A hash with key/value pairs to add as custom attributes to all log events forwarded to New Relic.
-//		NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
-//		NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
-//		NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
-//		NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
-//				         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
-//	                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
-//	                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
-//			          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
-//			          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
-//			          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE						 sets Profiling.CPUSampleRateHz
-//			          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
-//			          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
-//				         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
+//			NEW_RELIC_APP_NAME                                			sets AppName
+//			NEW_RELIC_ATTRIBUTES_EXCLUDE                      			sets Attributes.Exclude using a comma-separated list, eg. "request.headers.host,request.method"
+//			NEW_RELIC_ATTRIBUTES_INCLUDE                      			sets Attributes.Include using a comma-separated list
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_ENABLED          		sets ModuleDependencyMetrics.Enabled
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_IGNORED_PREFIXES 		sets ModuleDependencyMetrics.IgnoredPrefixes
+//			NEW_RELIC_MODULE_DEPENDENCY_METRICS_REDACT_IGNORED_PREFIXES sets ModuleDependencyMetrics.RedactIgnoredPrefixes to a boolean value
+//			NEW_RELIC_CODE_LEVEL_METRICS_ENABLED              			sets CodeLevelMetrics.Enabled
+//			NEW_RELIC_CODE_LEVEL_METRICS_SCOPE                			sets CodeLevelMetrics.Scope using a comma-separated list, e.g. "transaction"
+//			NEW_RELIC_CODE_LEVEL_METRICS_PATH_PREFIX          			sets CodeLevelMetrics.PathPrefixes using a comma-separated list
+//			NEW_RELIC_CODE_LEVEL_METRICS_REDACT_PATH_PREFIXES    		sets CodeLevelMetrics.RedactPathPrefixes to a boolean value
+//		 	NEW_RELIC_CODE_LEVEL_METRICS_REDACT_IGNORED_PREFIXES 		sets CodeLevelMetrics.RedactIgnoredPrefixes to a boolean value
+//			NEW_RELIC_CODE_LEVEL_METRICS_IGNORED_PREFIX       			sets CodeLevelMetrics.IgnoredPrefixes using a comma-separated list
+//			NEW_RELIC_DISTRIBUTED_TRACING_ENABLED             			sets DistributedTracer.Enabled using strconv.ParseBool
+//			NEW_RELIC_ENABLED                                 			sets Enabled using strconv.ParseBool
+//			NEW_RELIC_HIGH_SECURITY                           			sets HighSecurity using strconv.ParseBool
+//			NEW_RELIC_HOST                                    			sets Host
+//			NEW_RELIC_INFINITE_TRACING_SPAN_EVENTS_QUEUE_SIZE 			sets InfiniteTracing.SpanEvents.QueueSize using strconv.Atoi
+//			NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_PORT    			sets InfiniteTracing.TraceObserver.Port using strconv.Atoi
+//			NEW_RELIC_INFINITE_TRACING_TRACE_OBSERVER_HOST    			sets InfiniteTracing.TraceObserver.Host
+//			NEW_RELIC_LABELS                                  			sets Labels using a semi-colon delimited string of colon-separated pairs, eg. "Server:One;DataCenter:Primary"
+//			NEW_RELIC_LICENSE_KEY                             			sets License
+//			NEW_RELIC_LOG                                     			sets Logger to log to either "stdout" or "stderr" (filenames are not supported)
+//			NEW_RELIC_LOG_LEVEL                               			controls the NEW_RELIC_LOG level, must be "debug" for debug, or empty for info
+//			NEW_RELIC_PROCESS_HOST_DISPLAY_NAME               			sets HostDisplayName
+//			NEW_RELIC_SECURITY_POLICIES_TOKEN                 			sets SecurityPoliciesToken
+//			NEW_RELIC_UTILIZATION_BILLING_HOSTNAME            			sets Utilization.BillingHostname
+//			NEW_RELIC_UTILIZATION_LOGICAL_PROCESSORS          			sets Utilization.LogicalProcessors using strconv.Atoi
+//			NEW_RELIC_UTILIZATION_TOTAL_RAM_MIB               			sets Utilization.TotalRAMMIB using strconv.Atoi
+//			NEW_RELIC_APPLICATION_LOGGING_ENABLED						sets ApplicationLogging.Enabled. Set to false to disable all application logging features.
+//		 	NEW_RELIC_APPLICATION_LOGGING_FORWARDING_ENABLED  			sets ApplicationLogging.LogForwarding.Enabled. Set to false to disable in agent log forwarding.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_ENABLED     sets ApplicationLogging.LogForwarding.Labels.Enabled to enable sending application labels with forwarded logs.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_LABELS_EXCLUDE     sets ApplicationLogging.LogForwarding.Labels.Exclude to filter out a set of unwanted label types from the ones reported with logs.
+//		 	NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED		  		sets ApplicationLogging.Metrics.Enabled. Set to false to disable the collection of application log metrics.
+//		 	NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED      sets ApplicationLogging.LocalDecoration.Enabled. Set to true to enable local log decoration.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED	sets ApplicationLogging.LogForwarding.Limit. Set to 0 to prevent captured logs from being forwarded.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED sets CustomInsightsEvents.CustomAttributesEnabled to enable sending application custom attributes with forwarded logs.
+//			NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES	sets CustomInsightsEvents.CustomAttributesValues A hash with key/value pairs to add as custom attributes to all log events forwarded to New Relic.
+//			NEW_RELIC_AI_MONITORING_ENABLED								sets AIMonitoring.Enabled
+//			NEW_RELIC_AI_MONITORING_STREAMING_ENABLED					sets AIMonitoring.Streaming.Enabled
+//			NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED				sets AIMonitoring.RecordContent.Enabled
+//			NEW_RELIC_CLOUD_AWS_ACCOUNT_ID								sets CloudAWS.AccountID
+//					         NEW_RELIC_PROFILING_ENABLED                                 sets Profiling.Enabled
+//		                  NEW_RELIC_PROFILING_DELAY									 sets Profiling.Delay
+//		                  NEW_RELIC_PROFILING_DURATION								 sets Profiling.Duration
+//				          NEW_RELIC_PROFILING_SAMPLE_INTERVAL_MS						 sets Profiling.Interval
+//				          NEW_RELIC_PROFILING_CPU_REPORT_INTERVAL_MS						 sets Profiling.CPUReportInterval
+//				          NEW_RELIC_PROFILING_CPU_SAMPLE_RATE						 sets Profiling.CPUSampleRateHz
+//				          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
+//				          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
+//					         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
+//	    NEW_RELIC_OPEN_TELEMETRY_ENABLED		sets OpenTelemetry.Enabled
+//	    NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
+//		   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
+//		   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
+//		   OTEL_SERVICE_NAME	if OpenTelemetry.Enabled and ServiceNameOverride, sets AppName
+//		   OTEL_LOG_LEVEL		if OpenTelemetry.Enabled
+//	    OTEL_SDK_DISABLED	if OpenTelemetry.Enabled and OpenTelemetry.AllowSDKDisable, clears OpenTelemetry.Enabled
 //
 // This function is strict and will assign Config.Error if any of the
 // environment variables cannot be parsed.
@@ -856,6 +925,31 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE", nil)
 		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE", nil)
 		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE", nil)
+		//     NEW_RELIC_OPEN_TELEMETRY_ENABLED		sets OpenTelemetry.Enabled
+		//     NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
+		//	   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
+		//	   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
+		//	   OTEL_SERVICE_NAME	if OpenTelemetry.Enabled and ServiceNameOverride, sets AppName
+		//	   OTEL_LOG_LEVEL		if OpenTelemetry.Enabled
+		//     OTEL_SDK_DISABLED	if OpenTelemetry.Enabled and OpenTelemetry.AllowSDKDisable, clears OpenTelemetry.Enabled
+		if cfg.OpenTelemetry.Enabled && cfg.OpenTelemetry.AllowSDKDisable {
+			var sdkDisabled bool
+			assignBool(&sdkDisabled, "OTEL_SDK_DISABLED")
+			if sdkDisabled {
+				cfg.OpenTelemetry.Enabled = false
+			}
+		}
+		if cfg.OpenTelemetry.Enabled {
+			if cfg.OpenTelemetry.ServiceNameOverride {
+				if env := getenv("OTEL_SERVICE_NAME"); env != "" {
+					cfg.AppName = env
+				}
+			}
+			if env := getenv("OTEL_LOG_LEVEL"); env != "" {
+				ll, _ := OtelLogLevelFromName(env)
+				cfg.OpenTelemetry.LogLevel = ll
+			}
+		}
 	}
 }
 

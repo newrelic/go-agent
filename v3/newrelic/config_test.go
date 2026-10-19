@@ -220,6 +220,13 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 			"Labels":{"zip":"zap"},
 			"Logger":"*logger.logFile",
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
+			"OpenTelemetry": {
+			    "AllowSDKDisable": false,
+				"Enabled": false,
+				"LogLevel": "INFO",
+				"ServiceName": "",
+				"ServiceNameOverride": false
+			},
 			"Profiling": {
 				"BlockRate": 1,
 				"CPUReportInterval": 0,
@@ -463,6 +470,13 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 			"Labels":null,
 			"Logger":null,
 			"ModuleDependencyMetrics":{"Enabled":true,"IgnoredPrefixes":null,"RedactIgnoredPrefixes":true},
+			"OpenTelemetry": {
+			    "AllowSDKDisable": false,
+				"Enabled": false,
+				"LogLevel": "INFO",
+				"ServiceName": "",
+				"ServiceNameOverride": false
+			},
 			"Profiling": {
 				"BlockRate": 1,
 				"CPUReportInterval": 0,
