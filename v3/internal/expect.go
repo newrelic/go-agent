@@ -131,6 +131,8 @@ type Expect interface {
 
 	ExpectTxnEvents(t Validator, want []WantEvent)
 
+	ExpectTxnEventsPartial(t Validator, want []WantEvent)
+
 	ExpectMetrics(t Validator, want []WantMetric)
 	ExpectMetricsPresent(t Validator, want []WantMetric)
 	ExpectTxnMetrics(t Validator, want WantTxn)
@@ -139,4 +141,12 @@ type Expect interface {
 	ExpectSlowQueries(t Validator, want []WantSlowQuery)
 
 	ExpectSpanEvents(t Validator, want []WantEvent)
+
+	// ExpectSpanEventsPartial validates only the attributes specified in want,
+	// ignoring any additional attributes present on the actual span events.
+	ExpectSpanEventsPartial(t Validator, want []WantEvent)
+
+	// ExpectSpanLinksPartial validates the SpanLink events that are written
+	// alongside the span events, checking only the attributes specified in want.
+	ExpectSpanLinksAndSpanEventsPartial(t Validator, want []WantEvent, spanEventType string)
 }
