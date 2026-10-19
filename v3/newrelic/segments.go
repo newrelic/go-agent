@@ -58,8 +58,8 @@ func (s *LinkedSpan) WriteJSONWithContainer(buf *bytes.Buffer, e *spanEvent) {
 	}
 	w.stringField("id", e.GUID)
 	w.stringField("trace.id", e.TraceID)
-	w.stringField("linkedSpanID", s.spanID)
-	w.stringField("linkedTraceID", s.traceID)
+	w.stringField("linkedSpanId", s.spanID)
+	w.stringField("linkedTraceId", s.traceID)
 	buf.WriteByte('}')
 	buf.WriteByte(',')
 	buf.WriteByte('{')
@@ -81,7 +81,7 @@ func (se *SpanEventEvent) WriteJSON(buf *bytes.Buffer, e *spanEvent) {
 	} else {
 		w.intField("timestamp", timeToIntMillis(se.startTime))
 	}
-	w.stringField("id", e.GUID)
+	w.stringField("span.id", e.GUID)
 	w.stringField("trace.id", e.TraceID)
 	buf.WriteByte('}')
 	buf.WriteByte(',')

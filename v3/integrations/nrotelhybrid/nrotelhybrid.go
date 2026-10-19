@@ -25,9 +25,8 @@ const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dro
 const w3cVersion = "00"
 
 type txnMapEntry struct {
-	txn      *newrelic.Transaction
-	spanID   oteltrace.SpanID
-	hasLinks bool
+	txn    *newrelic.Transaction
+	spanID oteltrace.SpanID
 }
 
 type segmentEntry struct {
@@ -114,7 +113,7 @@ func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSp
 	// check if remote parent
 	// should be a valid span context and be marked as remote
 	// this begins a transaction
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn || len(s.Links()) > 0 {
+	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn {
 		p.startTransaction(s, isWeb)
 		return
 	}
@@ -165,7 +164,7 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 		txn.SetWebRequest(req)
 	}
 	traceID := s.SpanContext().TraceID()
-	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID(), hasLinks: (len(s.Links()) > 0)})
+	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID()})
 }
 
 func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMapEntry) {
@@ -214,6 +213,22 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 			if hasErr {
 				entries[i].txn.NoticeError(nrErr)
 			}
+			if len(links) > 0 {
+				for _, link := range links {
+					entries[i].txn.AddLink(link.SpanContext.SpanID().String(),
+						link.SpanContext.TraceID().String(),
+						s.StartTime())
+				}
+			}
+			if len(events) > 0 {
+				for j, event := range events {
+					if j > 99 {
+						p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
+						continue
+					}
+					entries[i].txn.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
+				}
+			}
 			transactionsToEnd = append(transactionsToEnd, entries[i].txn)
 		}
 		entries = append(entries[:i], entries[i+1:]...)
@@ -245,7 +260,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 					continue
 				}
-				segEntry.seg.AddSpanEventEvent(event.Name, s.StartTime(), otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
+				segEntry.seg.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes)) // should we be using event.Time instead?
 			}
 		}
 		segEntry.seg.End()
@@ -436,7 +451,7 @@ func checkMap(key attribute.Key, attrMap map[string]string) (string, bool) {
 func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
 	// if the innermost active transaction exists and is not the same span id, it is within an existing transaction
 	if entries := txnMap[traceID]; len(entries) > 0 {
-		return entries[len(entries)-1].spanID != spanID && !entries[len(entries)-1].hasLinks
+		return entries[len(entries)-1].spanID != spanID
 	}
 	return false
 }
