@@ -40,7 +40,6 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -110,11 +109,12 @@ func newHTTPHandler(d *deps) http.Handler {
 	mux.HandleFunc("/linkedroute/", linkedRoute)
 	mux.HandleFunc("/clienterror/", clientError)
 
-	// Add HTTP instrumentation for the whole server; this is what makes
-	// each incoming request a SpanKindServer root transaction.
-	return otelhttp.NewHandler(mux, "/", otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
-		return r.URL.Path
-	}))
+	return otelhttp.NewHandler(mux, "/",
+		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
+		otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
+			return r.URL.Path
+		}),
+	)
 }
 
 func linkedRoute(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +124,7 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
+		oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
 			attribute.String("link.purpose", "asynchronous_processing"),
 		)),
@@ -145,18 +146,19 @@ func serverRoot(w http.ResponseWriter, r *http.Request) {
 
 	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 
-	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
-
-	_, serverSpan := tracer.Start(ctx, "server-segment", oteltrace.WithSpanKind(oteltrace.SpanKindServer))
+	_, serverSpan := tracer.Start(r.Context(), "server-segment", oteltrace.WithSpanKind(oteltrace.SpanKindServer))
 	serverSpan.End()
 
-	_, internalSpan := tracer.Start(ctx, "internal-segment", oteltrace.WithSpanKind(oteltrace.SpanKindInternal))
+	_, internalSpan := tracer.Start(r.Context(), "internal-segment", oteltrace.WithSpanKind(oteltrace.SpanKindInternal))
 	internalSpan.End()
 }
 
 // clientExternal makes an "external" request
 func clientExternal(w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+
+	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport,
+		otelhttp.WithPropagators(otel.GetTextMapPropagator()),
+	)}
 	req, err := http.NewRequestWithContext(r.Context(), "GET", "http://localhost:8080/serverroot/", nil)
 	if err != nil {
 		log.Println(err)
