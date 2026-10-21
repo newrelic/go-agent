@@ -45,6 +45,8 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
+var tracer = nrotelhybrid.Tracer("nrotel-example")
+
 type deps struct {
 	db *sql.DB
 }
@@ -114,16 +116,16 @@ func newHTTPHandler(d *deps) http.Handler {
 	// each incoming request a SpanKindServer root transaction.
 	return otelhttp.NewHandler(mux, "/", otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
 		return r.URL.Path
-	}))
+	}), otelhttp.WithPropagators(otel.GetTextMapPropagator()))
 }
 
 func linkedRoute(w http.ResponseWriter, r *http.Request) {
-	tracer := otel.Tracer("nrotel-example")
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
 	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
+		oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
 			attribute.String("link.purpose", "asynchronous_processing"),
 		)),
@@ -133,7 +135,7 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func leafCall(ctx context.Context, name string) {
-	_, span := otel.Tracer("nrotel-example").Start(ctx, "leaf-call-"+name)
+	_, span := tracer.Start(ctx, "leaf-call-"+name)
 	defer span.End()
 	n := rand.IntN(500)
 	time.Sleep(time.Duration(n) * time.Millisecond)
@@ -142,8 +144,6 @@ func leafCall(ctx context.Context, name string) {
 // serverRoot Extracts headers to check for a remote parent. It also
 // begins two child spans with different SpanKinds
 func serverRoot(w http.ResponseWriter, r *http.Request) {
-
-	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
@@ -176,7 +176,6 @@ func (d *deps) clientDatastore(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientError(w http.ResponseWriter, r *http.Request) {
-	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 	_, span := tracer.Start(r.Context(), "possible-error-segment")
 	defer span.End()
 	if r.Method != http.MethodPost {
