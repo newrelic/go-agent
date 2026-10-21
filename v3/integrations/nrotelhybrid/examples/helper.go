@@ -10,7 +10,6 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -42,7 +41,7 @@ func NewHybridApp(name string) (*newrelic.Application, context.Context, func(), 
 
 	tp := trace.NewTracerProvider(trace.WithSyncer(exporter), trace.WithSpanProcessor(processor))
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	otel.SetTextMapPropagator(nrotelhybrid.NewHybridPropagator(processor))
 
 	return app, ctx, stop, func() {
 		tp.Shutdown(context.Background())
