@@ -36,8 +36,8 @@ type segmentEntry struct {
 	txn *newrelic.Transaction
 }
 
-// entry in the nrotelhybridProcessor linkMap
-type linkMapEntry struct {
+// entry in the nrotelhybridProcessor oTelToNRMap
+type oTelToNREntry struct {
 	NRTraceId string
 	NRSpanId  string
 }
@@ -97,12 +97,12 @@ func shouldStartOTelSpan(ctx context.Context, opts []oteltrace.SpanStartOption) 
 // nrotelhybridProcessor implements the interface trace.SpanProcessor.  It keeps state to keep
 // track of transactions and segments that share context with OTel spans.
 type nrotelhybridProcessor struct {
-	app        *newrelic.Application
-	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
-	segmentMap map[oteltrace.SpanID]segmentEntry   // SpanID -> Segment
-	linkMap    map[oteltrace.SpanID]linkMapEntry   // SpanID -> New Relic Trace ID
-	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
+	app         *newrelic.Application
+	mu          sync.Mutex
+	txnMap      map[oteltrace.TraceID][]txnMapEntry // Trace ID -> stack of Transactions
+	segmentMap  map[oteltrace.SpanID]segmentEntry   // SpanID -> Segment
+	oTelToNRMap map[oteltrace.SpanID]oTelToNREntry  // SpanID -> New Relic Trace ID
+	txnChecker  func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
 }
 
 // Returns this package's implementation of a trace.SpanProcessor if OTel is enabled.
@@ -112,11 +112,11 @@ func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
 		return nil
 	}
 	return &nrotelhybridProcessor{
-		app:        app,
-		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
-		segmentMap: map[oteltrace.SpanID]segmentEntry{},
-		linkMap:    map[oteltrace.SpanID]linkMapEntry{},
-		txnChecker: isWithinTransaction,
+		app:         app,
+		txnMap:      map[oteltrace.TraceID][]txnMapEntry{},
+		segmentMap:  map[oteltrace.SpanID]segmentEntry{},
+		oTelToNRMap: map[oteltrace.SpanID]oTelToNREntry{},
+		txnChecker:  isWithinTransaction,
 	}
 }
 
@@ -191,7 +191,7 @@ func (p *nrotelhybridProcessor) startTransaction(s trace.ReadWriteSpan, isWeb bo
 	}
 	traceID := s.SpanContext().TraceID()
 	p.txnMap[traceID] = append(p.txnMap[traceID], txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID()})
-	p.linkMap[s.SpanContext().SpanID()] = linkMapEntry{
+	p.oTelToNRMap[s.SpanContext().SpanID()] = oTelToNREntry{
 		NRTraceId: txn.GetLinkingMetadata().TraceID,
 		NRSpanId:  txn.GetLinkingMetadata().SpanID,
 	}
@@ -211,7 +211,7 @@ func (p *nrotelhybridProcessor) startSegment(s trace.ReadWriteSpan, entry txnMap
 		seg: seg,
 		txn: entry.txn,
 	}
-	p.linkMap[s.SpanContext().SpanID()] = linkMapEntry{
+	p.oTelToNRMap[s.SpanContext().SpanID()] = oTelToNREntry{
 		NRTraceId: entry.txn.GetLinkingMetadata().TraceID,
 		NRSpanId:  entry.txn.GetLinkingMetadata().SpanID,
 	}
@@ -256,7 +256,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 			}
 			if len(links) > 0 {
 				for _, link := range links {
-					entries[i].txn.AddLink(p.linkMap[link.SpanContext.SpanID()].NRSpanId, p.linkMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
+					entries[i].txn.AddLink(p.oTelToNRMap[link.SpanContext.SpanID()].NRSpanId, p.oTelToNRMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
 				}
 			}
 			if len(events) > 0 {
@@ -287,7 +287,8 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		}
 		if len(links) > 0 {
 			for _, link := range links {
-				segEntry.txn.AddLink(p.linkMap[link.SpanContext.SpanID()].NRSpanId, p.linkMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
+				segEntry.txn.AddLink(p.oTelToNRMap[link.SpanContext.SpanID()].NRSpanId, p.oTelToNRMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
+				// link.LinkedTraceId is ended? and segEntryisEnded mark linkEntry[spanId] to get deleted
 			}
 		}
 		if len(events) > 0 {
