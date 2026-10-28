@@ -41,7 +41,6 @@ type SpanEventAttributes interface {
 
 type SpanEventEvent struct {
 	name       string
-	traceID    string
 	startTime  time.Time
 	attributes SpanEventAttributes
 }
