@@ -256,7 +256,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 			}
 			if len(links) > 0 {
 				for _, link := range links {
-					entries[i].txn.AddLink(p.oTelToNRMap[link.SpanContext.SpanID()].NRSpanId, p.oTelToNRMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
+					entries[i].txn.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), s.StartTime())
 				}
 			}
 			if len(events) > 0 {
@@ -287,8 +287,7 @@ func (p *nrotelhybridProcessor) OnEnd(s trace.ReadOnlySpan) {
 		}
 		if len(links) > 0 {
 			for _, link := range links {
-				segEntry.txn.AddLink(p.oTelToNRMap[link.SpanContext.SpanID()].NRSpanId, p.oTelToNRMap[link.SpanContext.SpanID()].NRTraceId, s.StartTime())
-				// link.LinkedTraceId is ended? and segEntryisEnded mark linkEntry[spanId] to get deleted
+				segEntry.seg.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), s.StartTime())
 			}
 		}
 		if len(events) > 0 {
