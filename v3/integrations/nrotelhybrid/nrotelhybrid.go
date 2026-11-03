@@ -24,61 +24,6 @@ const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dro
 // that this package emits.
 const w3cVersion = "00"
 
-// everything here for new relic IDs
-type newRelicIDs struct {
-	traceID oteltrace.TraceID
-	spanID  oteltrace.SpanID
-}
-
-type newRelicIDSlot struct {
-	ids *newRelicIDs // need mutex here eventually
-}
-
-type newRelicIDSlotKey struct{} // accesses the Key for the txn map written in context
-
-type spanWithNewRelicIDs struct {
-	oteltrace.Span
-	spanContext oteltrace.SpanContext
-}
-
-func (s *spanWithNewRelicIDs) SpanContext() oteltrace.SpanContext { return s.spanContext }
-
-// publishNewRelicIDs decodes New Relic's hex trace and span IDs into OTel's ID types and leaves
-// them in the slot that hybridTracer.Start put in ctx, so Start can report them through the span
-// it returns.  It reports false when there is no slot (the span did not come through
-// hybridTracer) or the IDs are empty or malformed, such as when distributed tracing or span
-// events are disabled.
-func publishNewRelicIDs(ctx context.Context, traceIDHex, spanIDHex string) (newRelicIDs, bool) {
-	slot, ok := ctx.Value(newRelicIDSlotKey{}).(*newRelicIDSlot)
-	if !ok {
-		return newRelicIDs{}, false
-	}
-	traceID, err := oteltrace.TraceIDFromHex(traceIDHex)
-	if err != nil {
-		return newRelicIDs{}, false
-	}
-	spanID, err := oteltrace.SpanIDFromHex(spanIDHex)
-	if err != nil {
-		return newRelicIDs{}, false
-	}
-	ids := newRelicIDs{traceID: traceID, spanID: spanID}
-	slot.ids = &ids
-	return ids, true
-}
-
-// end for new relic IDs
-// slice of entry in nrotelhybridProcessor txnMap
-type txnMapEntry struct {
-	txn    *newrelic.Transaction
-	spanID oteltrace.SpanID
-}
-
-// entry in nrotelhybridProcessor segmentMap
-type segmentEntry struct {
-	seg nrSegment
-	txn *newrelic.Transaction
-}
-
 // interface to describe different segments on the new relic side
 // eventually, the type will be extracted to populate the correct
 // attributes
@@ -94,6 +39,15 @@ type nrSegment interface {
 type hybridTracer struct {
 	embedded.Tracer
 	tracer oteltrace.Tracer
+	app    *newrelic.Application
+}
+
+type hybridSpan struct {
+	oteltrace.Span                       // inner SDK span
+	spanContext    oteltrace.SpanContext // NR IDs
+	txn            *newrelic.Transaction // set for a root span
+	seg            *newrelic.Segment     // set for a child span
+	endOnce        sync.Once
 }
 
 // Returns this package's implementation of oteltrace.Tracer
@@ -110,22 +64,42 @@ func (h *hybridTracer) Start(ctx context.Context, spanName string, opts ...otelt
 		return ctx, noop.Span{}
 	}
 
-	slot := &newRelicIDSlot{}
-	ctx = context.WithValue(ctx, newRelicIDSlotKey{}, slot) // add empty slot to context before we start
+	// slot := &newRelicIDSlot{}
+	// ctx = context.WithValue(ctx, newRelicIDSlotKey{}, slot) // add empty slot to context before we start
 
 	ctx, span := h.tracer.Start(ctx, spanName, opts...)
 
-	nrIds := slot.ids
-	if nrIds == nil {
+	// nrIds := slot.ids
+	// if nrIds == nil {
+	// 	return ctx, span
+	// }
+
+	// wrapped := &spanWithNewRelicIDs{
+	// 	Span:        span,
+	// 	spanContext: span.SpanContext().WithTraceID(nrIds.traceID).WithSpanID(nrIds.spanID),
+	// }
+	readWriteSpan, ok := span.(trace.ReadWriteSpan)
+	if !ok || !span.IsRecording() {
+		return ctx, span
+	}
+	config := oteltrace.NewSpanStartConfig(opts...)
+	hybridNRSpan := &hybridSpan{
+		Span:        span,
+		spanContext: span.SpanContext(),
+	}
+	// check if span is considered a transaction
+	isTxn, isWeb := isTransaction(readWriteSpan.SpanKind(), readWriteSpan.Parent(), config.NewRoot(), ctx)
+	switch {
+	case isTxn:
+		hybridNRSpan.startTransaction(ctx, readWriteSpan, isWeb, h.app)
+		ctx = newrelic.NewContext(ctx, hybridNRSpan.txn)
+	case newrelic.FromContext(ctx) != nil:
+		hybridNRSpan.startSegment(ctx, readWriteSpan, newrelic.FromContext(ctx))
+	default:
 		return ctx, span
 	}
 
-	wrapped := &spanWithNewRelicIDs{
-		Span:        span,
-		spanContext: span.SpanContext().WithTraceID(nrIds.traceID).WithSpanID(nrIds.spanID),
-	}
-
-	return oteltrace.ContextWithSpan(ctx, wrapped), wrapped
+	return oteltrace.ContextWithSpan(ctx, hybridNRSpan), hybridNRSpan
 }
 
 // shouldStartOTelSpan will decide whether or not an OTel span should be started given the current
@@ -147,73 +121,11 @@ func shouldStartOTelSpan(ctx context.Context, opts []oteltrace.SpanStartOption) 
 	return false
 }
 
-// nrotelhybridProcessor implements the interface trace.SpanProcessor.  It keeps state to keep
-// track of transactions and segments that share context with OTel spans.
-type nrotelhybridProcessor struct {
-	app        *newrelic.Application
-	mu         sync.Mutex
-	txnMap     map[oteltrace.TraceID][]txnMapEntry    // Trace ID -> stack of Transactions
-	segmentMap map[oteltrace.SpanID]segmentEntry      // SpanID -> Segment
-	txnMapKey  map[oteltrace.SpanID]oteltrace.TraceID // gives a map key for txnMap
-	txnChecker func(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool
-}
-
-// Returns this package's implementation of a trace.SpanProcessor if OTel is enabled.
-func NewHybridProcessor(app *newrelic.Application) *nrotelhybridProcessor {
-	conf, _ := app.Config()
-	if !conf.OpenTelemetry.Enabled {
-		return nil
-	}
-	return &nrotelhybridProcessor{
-		app:        app,
-		txnMap:     map[oteltrace.TraceID][]txnMapEntry{},
-		segmentMap: map[oteltrace.SpanID]segmentEntry{},
-		txnMapKey:  map[oteltrace.SpanID]oteltrace.TraceID{},
-		txnChecker: isWithinTransaction,
-	}
-}
-
-// Defines what to do and what kind of New Relic event is created when an OTel span is started.
-// If a span is considered a transaction based on its context, a transaction will be started.
-// Otherwise, a segment will be started.
-func (p *nrotelhybridProcessor) OnStart(ctx context.Context, s trace.ReadWriteSpan) {
+func (p *hybridSpan) startTransaction(ctx context.Context, s trace.ReadWriteSpan, isWeb bool, app *newrelic.Application) {
 	if p == nil {
 		return
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	// check if span is considered a transaction
-	if isTxn, isWeb := p.isTransaction(s.SpanKind(), s.SpanContext(), s.Parent(), ctx); isTxn {
-		p.startTransaction(ctx, s, isWeb)
-		return
-	}
-
-	// if not, start the segment with the txn entry
-	if entries := p.txnMap[s.SpanContext().TraceID()]; len(entries) > 0 {
-		if entry := entries[len(entries)-1]; entry.txn != nil {
-			p.startSegment(ctx, s, entry)
-			return
-		}
-	}
-
-	// if no txn entry start it with the txn in context
-	if txn := newrelic.FromContext(ctx); txn != nil {
-		p.startSegment(ctx, s, txnMapEntry{txn: txn, spanID: s.SpanContext().SpanID()})
-	}
-
-}
-
-// Call that begins a transaction within the nrotelhybridProcessor.  The New Relic
-// transaction is started with the name of the OTel span.  It is then checked for trace
-// context to be used in distributed tracing.  If it is considered a web transaction, it
-// will begin a web request.  Finally, the transaction is added to the txnMap in the
-// nrotelhybridProcessor state.
-func (p *nrotelhybridProcessor) startTransaction(ctx context.Context, s trace.ReadWriteSpan, isWeb bool) {
-	if p == nil {
-		return
-	}
-	txn := p.app.StartTransaction(s.Name())
+	txn := app.StartTransaction(s.Name())
 	// A remote parent means an upstream service sent us trace context, so the
 	// transaction must adopt the remote trace id and parent span id.
 	if parent := s.Parent(); parent.IsValid() && parent.IsRemote() {
@@ -242,39 +154,33 @@ func (p *nrotelhybridProcessor) startTransaction(ctx context.Context, s trace.Re
 		}
 		txn.SetWebRequest(req)
 	}
-	sdkSpanID := s.SpanContext().SpanID()
+	p.txn = txn
 
-	// Child spans inherit the trace ID of the span hybridTracer.Start returns.  That is New
-	// Relic's trace ID when its IDs were published, and the SDK's trace ID otherwise.
-	mapKey := s.SpanContext().TraceID()
-	md := txn.GetLinkingMetadata()
-	if ids, ok := publishNewRelicIDs(ctx, md.TraceID, md.SpanID); ok {
-		mapKey = ids.traceID
-		// the SDK span still reports its own trace ID in OnEnd, so remember the key
-		p.txnMapKey[sdkSpanID] = mapKey
+	traceId := s.SpanContext().TraceID()
+	spanId := s.SpanContext().SpanID()
+	traceId, err := oteltrace.TraceIDFromHex(txn.GetLinkingMetadata().TraceID)
+	if err != nil {
+		return
 	}
-	p.txnMap[mapKey] = append(p.txnMap[mapKey], txnMapEntry{txn: txn, spanID: sdkSpanID})
+	spanId, err = oteltrace.SpanIDFromHex(txn.GetLinkingMetadata().SpanID)
+	if err != nil {
+		return
+	}
+	p.SetSpanContext(s.SpanContext().WithTraceID(traceId).WithSpanID(spanId))
 }
 
-// Call that begins a segment within the nrotelhybridProcessor.  The New Relic
-// segment is started with the OTel span name.  Then, it is added to the segmentMap
-// in the nrotelhybridProcessor state.
-func (p *nrotelhybridProcessor) startSegment(ctx context.Context, s trace.ReadWriteSpan, entry txnMapEntry) {
+func (p *hybridSpan) startSegment(ctx context.Context, s trace.ReadWriteSpan, parentTxn *newrelic.Transaction) {
 	if p == nil {
 		return
 	}
-	seg := entry.txn.StartSegment(s.Name())
+	seg := parentTxn.StartSegment(s.Name())
 	otelSpanID := s.SpanContext().SpanID()
 	seg.AddOtelSpanID(otelSpanID.String())
-	p.segmentMap[otelSpanID] = segmentEntry{
-		seg: seg,
-		txn: entry.txn,
-	}
+	p.seg = seg
+}
 
-	// Report New Relic's IDs for this segment through the span hybridTracer.Start returns.
-	// Right after StartSegment, the top of the segment stack is this segment.
-	md := entry.txn.GetLinkingMetadata()
-	publishNewRelicIDs(ctx, md.TraceID, md.SpanID)
+func (p *hybridSpan) SetSpanContext(sc oteltrace.SpanContext) {
+	p.spanContext = sc
 }
 
 // Defines what to do with New Relic events when an OTel span is ended.  The span is first
@@ -395,23 +301,17 @@ func exceptionFromSpan(s trace.ReadOnlySpan) (newrelic.Error, bool) {
 	return newrelic.Error{}, false
 }
 
-func (p *nrotelhybridProcessor) Shutdown(ctx context.Context) error {
-	return nil
-}
-
-func (p *nrotelhybridProcessor) ForceFlush(ctx context.Context) error {
-	return nil
-}
-
-// isTransaction reports whether the span should start/continue a transaction (isTxn),
-// and whether that transaction is a web transaction (isWeb).
-func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current oteltrace.SpanContext, parent oteltrace.SpanContext, ctx context.Context) (isTxn, isWeb bool) {
-	if p == nil {
-		return false, false
+// isTransaction reports whether the span should start a transaction (isTxn),
+// and whether that transaction is a web transaction (isWeb).  A span inside an existing
+// transaction is a segment of it, unless it is a server or consumer span started as a new
+// root (oteltrace.WithNewRoot), which begins its own transaction.
+func isTransaction(kind oteltrace.SpanKind, parent oteltrace.SpanContext, newRoot bool, ctx context.Context) (isTxn, isWeb bool) {
+	inTxn := newrelic.FromContext(ctx) != nil
+	startsOwnTxn := newRoot && (kind == oteltrace.SpanKindServer || kind == oteltrace.SpanKindConsumer)
+	if inTxn && !startsOwnTxn {
+		return false, false // segment of the existing transaction
 	}
-	if newrelic.FromContext(ctx) != nil {
-		return false, true // within an existing transaction
-	}
+
 	if parent.IsRemote() {
 		// any span with a remote parent is a transaction
 		switch kind {
@@ -421,16 +321,13 @@ func (p *nrotelhybridProcessor) isTransaction(kind oteltrace.SpanKind, current o
 			return true, false
 		}
 	}
+
 	switch kind {
 	case oteltrace.SpanKindServer:
-		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), true
-	case oteltrace.SpanKindClient:
-		return false, true
-	case oteltrace.SpanKindProducer:
-		return false, false
+		return true, true
 	case oteltrace.SpanKindConsumer:
-		return !p.txnChecker(p.txnMap, current.TraceID(), current.SpanID()), false
-	default:
+		return true, false
+	default: // client, producer, internal
 		return false, false
 	}
 }
@@ -555,15 +452,6 @@ func checkMap(key attribute.Key, attrMap map[string]string) (string, bool) {
 	nrAttribute, ok := attrMap[string(key)]
 	return nrAttribute, ok
 
-}
-
-// checks if an OTel spans exists within a transaction
-func isWithinTransaction(txnMap map[oteltrace.TraceID][]txnMapEntry, traceID oteltrace.TraceID, spanID oteltrace.SpanID) bool {
-	// if the innermost active transaction exists and is not the same span id, it is within an existing transaction
-	if entries := txnMap[traceID]; len(entries) > 0 {
-		return entries[len(entries)-1].spanID != spanID
-	}
-	return false
 }
 
 // otelEventAttributes adapts an OTEL event's attributes to
