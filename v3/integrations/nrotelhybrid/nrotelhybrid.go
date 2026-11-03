@@ -10,7 +10,6 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -42,6 +41,13 @@ type hybridTracer struct {
 	app    *newrelic.Application
 }
 
+// wrapper for trace.TracerProvider
+type hybridTracerProvider struct {
+	embedded.TracerProvider
+	provider *trace.TracerProvider
+	app      *newrelic.Application
+}
+
 type hybridSpan struct {
 	oteltrace.Span                       // inner SDK span
 	spanContext    oteltrace.SpanContext // NR IDs
@@ -50,11 +56,38 @@ type hybridSpan struct {
 	endOnce        sync.Once
 }
 
-// Returns this package's implementation of oteltrace.Tracer
-func Tracer(name string, opts ...oteltrace.TracerOption) oteltrace.Tracer {
-	return &hybridTracer{
-		tracer: otel.Tracer(name, opts...),
+// TracerProvider is an oteltrace.TracerProvider that also exposes the lifecycle
+// methods of the SDK provider it wraps.
+type TracerProvider interface {
+	oteltrace.TracerProvider
+	ForceFlush(ctx context.Context) error
+	Shutdown(ctx context.Context) error
+}
+
+// NewTracerProvider wraps a new SDK trace.TracerProvider so that the tracers it hands out
+// bridge OTel spans to New Relic transactions and segments on the given application.
+func NewTracerProvider(app *newrelic.Application, opts ...trace.TracerProviderOption) TracerProvider {
+	return &hybridTracerProvider{
+		app:      app,
+		provider: trace.NewTracerProvider(opts...),
 	}
+}
+
+// Returns this package's implementation of oteltrace.Tracer.  The inner tracer comes from the
+// wrapped SDK provider, so setting this provider as the global one does not recurse.
+func (h *hybridTracerProvider) Tracer(name string, opts ...oteltrace.TracerOption) oteltrace.Tracer {
+	return &hybridTracer{
+		tracer: h.provider.Tracer(name, opts...),
+		app:    h.app,
+	}
+}
+
+func (h *hybridTracerProvider) Shutdown(ctx context.Context) error {
+	return h.provider.Shutdown(ctx)
+}
+
+func (h *hybridTracerProvider) ForceFlush(ctx context.Context) error {
+	return h.provider.ForceFlush(ctx)
 }
 
 // hybridTracer defines start logic as returning a noop.Span{} when it is decided that an OTel span should
@@ -64,20 +97,8 @@ func (h *hybridTracer) Start(ctx context.Context, spanName string, opts ...otelt
 		return ctx, noop.Span{}
 	}
 
-	// slot := &newRelicIDSlot{}
-	// ctx = context.WithValue(ctx, newRelicIDSlotKey{}, slot) // add empty slot to context before we start
-
 	ctx, span := h.tracer.Start(ctx, spanName, opts...)
 
-	// nrIds := slot.ids
-	// if nrIds == nil {
-	// 	return ctx, span
-	// }
-
-	// wrapped := &spanWithNewRelicIDs{
-	// 	Span:        span,
-	// 	spanContext: span.SpanContext().WithTraceID(nrIds.traceID).WithSpanID(nrIds.spanID),
-	// }
 	readWriteSpan, ok := span.(trace.ReadWriteSpan)
 	if !ok || !span.IsRecording() {
 		return ctx, span
