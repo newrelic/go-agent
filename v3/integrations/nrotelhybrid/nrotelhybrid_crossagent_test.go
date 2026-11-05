@@ -163,10 +163,7 @@ func TestOtelTracing(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for i, tc := range tcs {
-		if i != 2 {
-			continue
-		}
+	for _, tc := range tcs {
 		expectedTxnEvents, expectedSpanEvents := createExpectedEvents(tc.AgentOutput)
 		t.Run(tc.TestDescription, func(t *testing.T) {
 			// Each test case gets its own app, so events from an earlier case do
@@ -335,13 +332,13 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 			// do work in segment
 			// begin a NR Segment
 			txn := newrelic.FromContext(ctx)
-			seg := txn.StartSegment(op.Parameters.SegmentName)
-			RunOperation(t, ctx, op.ChildOperations, app, externalCall)
+			segCtx, seg := txn.StartSegmentCtx(ctx, op.Parameters.SegmentName)
+			RunOperation(t, segCtx, op.ChildOperations, app, externalCall)
 			for _, assertion := range op.Assertions {
 				rule := assertion.Rule
 				switch rule.Operator {
 				case OperatorEquals:
-					equalsAssertion(t, ctx, rule, externalCall)
+					equalsAssertion(t, segCtx, rule, externalCall)
 				default:
 					continue
 				}

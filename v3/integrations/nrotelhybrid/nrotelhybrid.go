@@ -62,6 +62,41 @@ type hybridSpan struct {
 	app                 *newrelic.Application
 }
 
+// segmentSpan is the OTel view of a New Relic segment: identity only.  It is
+// non-recording and never exported; it exists so that OTel API calls made while
+// a segment is open (SpanFromContext, starting child spans) see the segment's
+// ids rather than those of the enclosing OTel span.
+type segmentSpan struct {
+	noop.Span
+	sc oteltrace.SpanContext
+}
+
+func (s segmentSpan) SpanContext() oteltrace.SpanContext { return s.sc }
+
+// segmentContextHook is registered on the application by NewTracerProvider and
+// is invoked by Transaction.StartSegmentCtx.  If the ids can't be parsed, ctx is
+// returned unchanged.
+func segmentContextHook(ctx context.Context, traceID, spanID string, sampled bool) context.Context {
+	tid, err := oteltrace.TraceIDFromHex(traceID)
+	if err != nil {
+		return ctx
+	}
+	sid, err := oteltrace.SpanIDFromHex(spanID)
+	if err != nil {
+		return ctx
+	}
+	var flags oteltrace.TraceFlags
+	if sampled {
+		flags = oteltrace.FlagsSampled
+	}
+	sc := oteltrace.NewSpanContext(oteltrace.SpanContextConfig{
+		TraceID:    tid,
+		SpanID:     sid,
+		TraceFlags: flags,
+	})
+	return oteltrace.ContextWithSpan(ctx, segmentSpan{sc: sc})
+}
+
 // TracerProvider is an oteltrace.TracerProvider that also exposes the lifecycle
 // methods of the SDK provider it wraps.
 type TracerProvider interface {
@@ -73,6 +108,9 @@ type TracerProvider interface {
 // NewTracerProvider wraps a new SDK trace.TracerProvider so that the tracers it hands out
 // bridge OTel spans to New Relic transactions and segments on the given application.
 func NewTracerProvider(app *newrelic.Application, opts ...trace.TracerProviderOption) TracerProvider {
+	// Make segments started with Transaction.StartSegmentCtx visible to the
+	// OTel API as the current span.
+	app.SetSegmentContextHook(segmentContextHook)
 	return &hybridTracerProvider{
 		app:      app,
 		provider: trace.NewTracerProvider(opts...),
