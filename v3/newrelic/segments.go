@@ -131,7 +131,7 @@ func (s *Segment) AddSpanEventEvent(name string, start time.Time, attrs SpanEven
 	})
 }
 func (s *Segment) SpanID() string {
-	return s.StartTime.thread.GetLinkingMetadata().SpanID
+	return s.StartTime.thread.segmentSpanID(s.StartTime.start)
 }
 func (s *ExternalSegment) AddOtelSpanID(spanID string) { s.otelSpanID = spanID }
 func (s *ExternalSegment) AddLink(spanID, traceID string, start time.Time) {
