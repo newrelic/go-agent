@@ -62,21 +62,21 @@ type hybridSpan struct {
 	app                 *newrelic.Application
 }
 
-// segmentSpan is the OTel view of a New Relic segment: identity only.  It is
+// segmentSpan is the OTel view of a New Relic span: identity only.  It is
 // non-recording and never exported; it exists so that OTel API calls made while
 // a segment is open (SpanFromContext, starting child spans) see the segment's
 // ids rather than those of the enclosing OTel span.
-type segmentSpan struct {
+type nrSpan struct {
 	noop.Span
 	sc oteltrace.SpanContext
 }
 
-func (s segmentSpan) SpanContext() oteltrace.SpanContext { return s.sc }
+func (s nrSpan) SpanContext() oteltrace.SpanContext { return s.sc }
 
-// segmentContextHook is registered on the application by NewTracerProvider and
-// is invoked by Transaction.StartSegmentCtx.  If the ids can't be parsed, ctx is
+// nrSpanContextHook is registered on the application by NewTracerProvider and
+// is invoked by Transaction.StartSegmentCtx or Application.StartTransactionCtx.  If the ids can't be parsed, ctx is
 // returned unchanged.
-func segmentContextHook(ctx context.Context, traceID, spanID string, sampled bool) context.Context {
+func nrSpanContextHook(ctx context.Context, traceID, spanID string, sampled bool) context.Context {
 	tid, err := oteltrace.TraceIDFromHex(traceID)
 	if err != nil {
 		return ctx
@@ -94,7 +94,7 @@ func segmentContextHook(ctx context.Context, traceID, spanID string, sampled boo
 		SpanID:     sid,
 		TraceFlags: flags,
 	})
-	return oteltrace.ContextWithSpan(ctx, segmentSpan{sc: sc})
+	return oteltrace.ContextWithSpan(ctx, nrSpan{sc: sc})
 }
 
 // TracerProvider is an oteltrace.TracerProvider that also exposes the lifecycle
@@ -110,7 +110,8 @@ type TracerProvider interface {
 func NewTracerProvider(app *newrelic.Application, opts ...trace.TracerProviderOption) TracerProvider {
 	// Make segments started with Transaction.StartSegmentCtx visible to the
 	// OTel API as the current span.
-	app.SetSegmentContextHook(segmentContextHook)
+	app.SetSegmentContextHook(nrSpanContextHook)
+	app.SetTransactionContextHook(nrSpanContextHook)
 	return &hybridTracerProvider{
 		app:      app,
 		provider: trace.NewTracerProvider(opts...),

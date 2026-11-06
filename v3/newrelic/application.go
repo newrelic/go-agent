@@ -15,6 +15,8 @@ import (
 // invoked by Transaction.StartSegmentCtx.
 type SegmentContextHook func(ctx context.Context, traceID, spanID string, sampled bool) context.Context
 
+type TransactionContextHook func(ctx context.Context, traceID, spanID string, sampled bool) context.Context
+
 // SetSegmentContextHook registers a SegmentContextHook on this application.
 // Passing nil removes any registered hook.
 //
@@ -25,6 +27,13 @@ func (app *Application) SetSegmentContextHook(h SegmentContextHook) {
 		return
 	}
 	app.app.segmentCtxHook = h
+}
+
+func (app *Application) SetTransactionContextHook(h TransactionContextHook) {
+	if app == nil || app.app == nil {
+		return
+	}
+	app.app.transactionCtxHook = h
 }
 
 // Application represents your application.  All methods on Application are nil
@@ -89,6 +98,19 @@ func (app *Application) StartTransaction(name string, opts ...TraceOption) *Tran
 		return nil
 	}
 	return app.app.StartTransaction(name, opts...)
+}
+
+func (app *Application) StartTransactionCtx(ctx context.Context, name string, opts ...TraceOption) (context.Context, *Transaction) {
+	if app == nil {
+		return ctx, nil
+	}
+
+	txn := app.StartTransaction(name, opts...)
+	hook := app.app.transactionCtxHook
+	if hook == nil {
+		return ctx, txn
+	}
+	return hook(ctx, txn.GetLinkingMetadata().TraceID, txn.GetLinkingMetadata().SpanID, txn.IsSampled()), txn
 }
 
 // RecordCustomEvent adds a custom event.

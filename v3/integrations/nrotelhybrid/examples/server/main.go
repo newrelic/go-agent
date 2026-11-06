@@ -125,7 +125,6 @@ func newHTTPHandler(d *deps) http.Handler {
 func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
-	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
 		oteltrace.WithSpanKind(oteltrace.SpanKindServer),

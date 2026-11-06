@@ -40,6 +40,8 @@ type app struct {
 	// it with a mutex or make it an atomic.Pointer.
 	segmentCtxHook SegmentContextHook
 
+	transactionCtxHook TransactionContextHook
+
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
 

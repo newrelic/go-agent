@@ -323,7 +323,7 @@ func RunOperation(t *testing.T, ctx context.Context, operations []OtelTestCaseOp
 		case CommandDoWorkInTransaction:
 			// do work in transaction
 			// begin a NR Transaction
-			txn := app.StartTransaction(op.Parameters.TransactionName)
+			ctx, txn := app.StartTransactionCtx(ctx, op.Parameters.TransactionName)
 			txnCtx := newrelic.NewContext(ctx, txn)
 			// run child operations
 			RunOperation(t, txnCtx, op.ChildOperations, app, externalCall)
