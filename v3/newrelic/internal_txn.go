@@ -54,6 +54,23 @@ type thread struct {
 	thread *tracingThread
 }
 
+func (thd *thread) segmentSpanID(start segmentStartTime) string {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished || !txn.BetterCAT.Enabled || !txn.shouldCollectSpanEvents() {
+		return ""
+	}
+	if start.Depth >= len(thd.thread.stack) {
+		return ""
+	}
+	frame := &thd.thread.stack[start.Depth]
+	if frame.spanID == "" {
+		frame.spanID = txn.TraceIDGenerator.GenerateSpanID()
+	}
+	return frame.spanID
+}
+
 func (thd *thread) IsEnded() bool {
 	txn := thd.txn
 	txn.Lock()
