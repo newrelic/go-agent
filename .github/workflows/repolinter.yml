@@ -15,17 +15,17 @@ jobs:
     steps:
       - name: Test Default Branch
         id: default-branch
-        uses: actions/github-script@v2
+        uses: actions/github-script@4aed96e0ba636e3df2423e6887c9a83ef8522d6d # v2.1.0
         with:
           script: |
             const data = await github.repos.get(context.repo)
             return data.data && data.data.default_branch === context.ref.split('/').slice(-1)[0]
       - name: Checkout Self
         if: ${{ steps.default-branch.outputs.result == 'true' }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e # v2.8.0
       - name: Run Repolinter
         if: ${{ steps.default-branch.outputs.result == 'true' }}
-        uses: newrelic/repolinter-action@v1
+        uses: newrelic/repolinter-action@3f4448f855c351e9695b24524a4111c7847b84cb # v1.7.0
         with:
           config_url: https://raw.githubusercontent.com/newrelic/.github/main/repolinter-rulesets/community-plus.yml
           output_type: issue
