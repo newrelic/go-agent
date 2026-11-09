@@ -54,7 +54,7 @@ jobs:
         with:
           path: go-agent
       - name: Setup go
-        uses: actions/setup-go@3041bf56c941b3916172d454dcd8f81a84947212 # v5.2.0
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version: ${{ matrix.go-version }}
           cache: false
@@ -84,7 +84,7 @@ jobs:
         with:
           path: go-agent
       - name: Setup go
-        uses: actions/setup-go@3041bf56c941b3916172d454dcd8f81a84947212 # v5.2.0
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
           go-version: ${{ matrix.go-version }}
           cache: false
@@ -125,7 +125,7 @@ jobs:
         run: |
           docker exec -e TEST=${{ matrix.core-test }} -e COVERAGE=1 nr-go make core-test 
       - name: Upload results to Codecov
-        uses: codecov/codecov-action@13ce06bfc6b4ebd04499b9cf2a6ec31f6c449c25 # v5.3.1
+        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: go-agent/v3/${{ matrix.core-test }}/coverage.txt
@@ -159,7 +159,7 @@ jobs:
         run: |
           docker exec -e TEST=${{ matrix.integration-test }} -e COVERAGE=1 nr-go make integration-test
       - name: Upload results to Codecov
-        uses: codecov/codecov-action@13ce06bfc6b4ebd04499b9cf2a6ec31f6c449c25 # v5.3.1
+        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: go-agent/v3/integrations/${{ matrix.integration-test }}/coverage.txt
