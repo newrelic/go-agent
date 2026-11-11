@@ -34,7 +34,6 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -45,7 +44,8 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-var tracer = nrotelhybrid.Tracer("nrotel-example")
+// tracer is set in run() once the hybrid tracer provider is installed.
+var tracer oteltrace.Tracer
 
 type deps struct {
 	db *sql.DB
@@ -65,6 +65,9 @@ func run() (err error) {
 	}
 	defer app.Shutdown(10 * time.Second)
 	defer cleanup()
+
+	// NewHybridApp installed the hybrid tracer provider as the global one.
+	tracer = otel.Tracer("nrotel-example")
 
 	// Initialize DB connection (change password)
 	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=<password> sslmode=disable", otelsql.WithAttributes(
@@ -122,7 +125,6 @@ func newHTTPHandler(d *deps) http.Handler {
 func linkedRoute(w http.ResponseWriter, r *http.Request) {
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
-	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
 		oteltrace.WithSpanKind(oteltrace.SpanKindServer),
