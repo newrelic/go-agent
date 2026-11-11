@@ -2,7 +2,6 @@ package examples
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
 
@@ -28,11 +26,11 @@ func NewHybridApp(name string) (*newrelic.Application, context.Context, func(), 
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	processor := nrotelhybrid.NewHybridProcessor(app)
-	if processor == nil {
-		stop()
-		return nil, nil, nil, nil, fmt.Errorf("otel tracing not enabled")
-	}
+	// processor := nrotelhybrid.NewHybridProcessor(app)
+	// if processor == nil {
+	// 	stop()
+	// 	return nil, nil, nil, nil, fmt.Errorf("otel tracing not enabled")
+	// }
 
 	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 	if err != nil {
@@ -40,9 +38,9 @@ func NewHybridApp(name string) (*newrelic.Application, context.Context, func(), 
 		return nil, nil, nil, nil, err
 	}
 
-	tp := trace.NewTracerProvider(trace.WithSyncer(exporter), trace.WithSpanProcessor(processor))
+	tp := nrotelhybrid.NewTracerProvider(app, trace.WithSyncer(exporter))
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	otel.SetTextMapPropagator(nrotelhybrid.NewHybridPropagator())
 
 	return app, ctx, stop, func() {
 		tp.Shutdown(context.Background())

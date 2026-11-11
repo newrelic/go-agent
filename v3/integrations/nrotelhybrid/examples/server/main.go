@@ -34,7 +34,6 @@ import (
 
 	_ "github.com/lib/pq"
 
-	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid"
 	"github.com/newrelic/go-agent/v3/integrations/nrotelhybrid/examples"
 	"github.com/uptrace/opentelemetry-go-extra/otelsql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -44,6 +43,9 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.43.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
+
+// tracer is set in run() once the hybrid tracer provider is installed.
+var tracer oteltrace.Tracer
 
 type deps struct {
 	db *sql.DB
@@ -63,6 +65,9 @@ func run() (err error) {
 	}
 	defer app.Shutdown(10 * time.Second)
 	defer cleanup()
+
+	// NewHybridApp installed the hybrid tracer provider as the global one.
+	tracer = otel.Tracer("nrotel-example")
 
 	// Initialize DB connection (change password)
 	db, err := otelsql.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=<password> sslmode=disable", otelsql.WithAttributes(
@@ -114,16 +119,15 @@ func newHTTPHandler(d *deps) http.Handler {
 	// each incoming request a SpanKindServer root transaction.
 	return otelhttp.NewHandler(mux, "/", otelhttp.WithSpanNameFormatter(func(operation string, r *http.Request) string {
 		return r.URL.Path
-	}))
+	}), otelhttp.WithPropagators(otel.GetTextMapPropagator()))
 }
 
 func linkedRoute(w http.ResponseWriter, r *http.Request) {
-	tracer := otel.Tracer("nrotel-example")
 	otherCtx, otherSpan := tracer.Start(r.Context(), "nrotel-other-route")
 	defer otherSpan.End()
-	go leafCall(otherCtx, "other")
 	ctx, span := tracer.Start(r.Context(), "linked-route",
 		oteltrace.WithNewRoot(),
+		oteltrace.WithSpanKind(oteltrace.SpanKindServer),
 		oteltrace.WithLinks(oteltrace.LinkFromContext(otherCtx,
 			attribute.String("link.purpose", "asynchronous_processing"),
 		)),
@@ -133,7 +137,7 @@ func linkedRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func leafCall(ctx context.Context, name string) {
-	_, span := otel.Tracer("nrotel-example").Start(ctx, "leaf-call-"+name)
+	_, span := tracer.Start(ctx, "leaf-call-"+name)
 	defer span.End()
 	n := rand.IntN(500)
 	time.Sleep(time.Duration(n) * time.Millisecond)
@@ -142,8 +146,6 @@ func leafCall(ctx context.Context, name string) {
 // serverRoot Extracts headers to check for a remote parent. It also
 // begins two child spans with different SpanKinds
 func serverRoot(w http.ResponseWriter, r *http.Request) {
-
-	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 
 	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
@@ -176,7 +178,6 @@ func (d *deps) clientDatastore(w http.ResponseWriter, r *http.Request) {
 }
 
 func clientError(w http.ResponseWriter, r *http.Request) {
-	tracer := nrotelhybrid.Tracer("nrotel-hybrid")
 	_, span := tracer.Start(r.Context(), "possible-error-segment")
 	defer span.End()
 	if r.Method != http.MethodPost {
