@@ -31,6 +31,17 @@ type app struct {
 
 	trObserver traceObserver
 
+	// segmentCtxHook is set by integrations (e.g. nrotelhybrid) that need to
+	// reflect a started segment in the context.Context.
+	//
+	// NOTE: this field is intentionally unsynchronized.  It must only be set
+	// during integration setup (Application.SetSegmentContextHook), before any
+	// transactions are started.  If it ever needs to change at runtime, guard
+	// it with a mutex or make it an atomic.Pointer.
+	segmentCtxHook SegmentContextHook
+
+	transactionCtxHook TransactionContextHook
+
 	// placeholderRun is used when the application is not connected.
 	placeholderRun *appRun
 

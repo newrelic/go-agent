@@ -54,6 +54,23 @@ type thread struct {
 	thread *tracingThread
 }
 
+func (thd *thread) segmentSpanID(start segmentStartTime) string {
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished || !txn.BetterCAT.Enabled || !txn.shouldCollectSpanEvents() {
+		return ""
+	}
+	if start.Depth >= len(thd.thread.stack) {
+		return ""
+	}
+	frame := &thd.thread.stack[start.Depth]
+	if frame.spanID == "" {
+		frame.spanID = txn.TraceIDGenerator.GenerateSpanID()
+	}
+	return frame.spanID
+}
+
 func (thd *thread) IsEnded() bool {
 	txn := thd.txn
 	txn.Lock()
@@ -533,28 +550,10 @@ func (thd *thread) End(recovered interface{}) error {
 		root.AgentAttributes = txn.Attrs.filterSpanAttributes(root.AgentAttributes, destSpan)
 		txn.SpanEvents = append(txn.SpanEvents, root)
 
-		// make a pass to build up our translation map
-		otelToGUID := make(map[string]string, len(txn.SpanEvents))
-		for _, evt := range txn.SpanEvents {
-			if evt.otelSpanID != "" {
-				otelToGUID[evt.otelSpanID] = evt.GUID
-			}
-		}
-
 		// Add transaction tracing fields to span events at the end of
 		// the transaction since we could accept payload after the early
 		// segments occur.
 		for _, evt := range txn.SpanEvents {
-			// add links to otel traces
-			for i := range evt.SpanLinks {
-				if guid, ok := otelToGUID[evt.SpanLinks[i].spanID]; ok {
-					evt.SpanLinks[i].spanID = guid
-					evt.SpanLinks[i].traceID = txn.BetterCAT.TraceID
-				}
-			}
-			for i := range evt.SpanEventEvents {
-				evt.SpanEventEvents[i].traceID = txn.BetterCAT.TraceID
-			}
 			evt.TraceID = txn.BetterCAT.TraceID
 			evt.TransactionID = txn.TxnID
 			evt.Sampled = txn.BetterCAT.Sampled

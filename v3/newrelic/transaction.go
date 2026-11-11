@@ -4,6 +4,7 @@
 package newrelic
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -371,6 +372,28 @@ func (txn *Transaction) StartSegment(name string) *Segment {
 		StartTime: txn.StartSegmentNow(),
 		Name:      name,
 	}
+}
+
+// StartSegmentCtx starts a segment like StartSegment and also returns a
+// context in which the segment is the current span for any integration that
+// registered a SegmentContextHook on the application (see
+// Application.SetSegmentContextHook).  If no hook is registered, or the segment
+// has no span id (span events disabled, transaction not sampled), ctx is
+// returned unchanged.
+func (txn *Transaction) StartSegmentCtx(ctx context.Context, name string) (context.Context, *Segment) {
+	seg := txn.StartSegment(name)
+	if nilTransaction(txn) || txn.thread.txn == nil || txn.thread.txn.app == nil {
+		return ctx, seg
+	}
+	hook := txn.thread.txn.app.segmentCtxHook
+	if hook == nil {
+		return ctx, seg
+	}
+	spanID := seg.SpanID()
+	if spanID == "" {
+		return ctx, seg
+	}
+	return hook(ctx, txn.GetTraceMetadata().TraceID, spanID, txn.IsSampled()), seg
 }
 
 // InsertDistributedTraceHeaders adds the Distributed Trace headers used to

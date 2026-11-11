@@ -6,18 +6,15 @@ import (
 
 	"github.com/newrelic/go-agent/v3/newrelic"
 	"go.opentelemetry.io/otel/propagation"
-	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 type hybridPropagator struct {
-	original  propagation.TraceContext
-	processor *nrotelhybridProcessor
+	original propagation.TraceContext
 }
 
-func NewHybridPropagator(processor *nrotelhybridProcessor) propagation.TextMapPropagator {
+func NewHybridPropagator() propagation.TextMapPropagator {
 	return hybridPropagator{
-		original:  propagation.TraceContext{},
-		processor: processor,
+		original: propagation.TraceContext{},
 	}
 }
 
@@ -55,20 +52,6 @@ func (h hybridPropagator) txnFromSpanContext(ctx context.Context) *newrelic.Tran
 	txn := newrelic.FromContext(ctx)
 	if txn != nil {
 		return txn
-	}
-	h.processor.mu.Lock()
-	defer h.processor.mu.Unlock()
-	spanContext := oteltrace.SpanContextFromContext(ctx)
-	// look up segment first then look for txn
-	if segment, ok := h.processor.segmentMap[spanContext.SpanID()]; ok {
-		return segment.txn
-	}
-	if txnEntries, ok := h.processor.txnMap[spanContext.TraceID()]; ok {
-		for _, entry := range txnEntries {
-			if spanContext.SpanID() == entry.spanID {
-				return entry.txn
-			}
-		}
 	}
 	return nil
 }
