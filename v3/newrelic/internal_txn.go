@@ -278,10 +278,7 @@ func (thd *thread) StoreLog(log *logEvent) {
 		return
 	}
 
-	if txn.logs == nil {
-		txn.logs = make(logEventHeap, 0, internal.MaxLogEvents)
-	}
-	txn.logs.Add(log)
+	txn.logs.addWithLimit(log, internal.MaxLogEvents)
 }
 
 func (txn *txn) freezeName() {
