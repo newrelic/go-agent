@@ -536,3 +536,38 @@ func BenchmarkRecordLoggingMetrics(b *testing.B) {
 		h.LogEvents.RecordLoggingMetrics(h.Metrics)
 	}
 }
+
+func TestLogEventHeapAddWithLimit(t *testing.T) {
+	var h logEventHeap
+	h.addWithLimit(sampleLogEvent(0.5, infoLevel, "first", nil), 3)
+	if len(h) != 1 || cap(h) >= 3 {
+		t.Fatalf("len=%d cap=%d", len(h), cap(h))
+	}
+
+	h = nil
+	for i, p := range []priority{0.999999, 0.1, 0.9, 0.2, 0.8, 0.3} {
+		h.addWithLimit(sampleLogEvent(p, infoLevel, string(rune('a'+i)), nil), 3)
+	}
+	if len(h) != 3 || cap(h) != 3 {
+		t.Fatalf("len=%d cap=%d, want 3 and 3", len(h), cap(h))
+	}
+	got := map[string]bool{}
+	for _, e := range h {
+		got[e.message] = true
+	}
+	for _, want := range []string{"a", "c", "e"} {
+		if !got[want] {
+			t.Errorf("missing highest-priority event %q, have %v", want, got)
+		}
+	}
+}
+
+func TestTransactionStoreLogDoesNotPreallocate(t *testing.T) {
+	app := testApp(nil, ConfigAppLogForwardingEnabled(true), t)
+	txn := app.StartTransaction("hello")
+	txn.RecordLog(LogData{Severity: "info", Message: "one"})
+	if c := cap(txn.thread.txn.logs); c >= internal.MaxLogEvents {
+		t.Errorf("one log allocated capacity for %d events", c)
+	}
+	txn.End()
+}
