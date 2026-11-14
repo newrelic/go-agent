@@ -2,6 +2,7 @@
 ### Added
   * Added new integration nrecho-v5. Note that previous major versions (v3,v4) are still available under their respective folders
   * Added new integration nrgemini that instruments the genai package
+  * Added new integration nrfiber-v3 that instruments the Fiber v3 framework
   * Added support for continuous profiling
     * NOTE: Continuous Profiling is a new feature which is not yet generally available for use. The agent-side component code is now present in the agent but to actually use it ahead of the General Availability release, you will need to contact your New Relic sales representative to join the preview early
 ### Fixed
