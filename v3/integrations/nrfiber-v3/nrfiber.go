@@ -11,7 +11,7 @@
 //	// Add the nrfiber middleware before other middlewares or routes:
 //	app.Use(nrfiber.Middleware(newrelicApp))
 //
-// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrfiber/example/main.go
+// Example: https://github.com/newrelic/go-agent/tree/master/v3/integrations/nrfiber-v3/example/main.go
 package nrfiber
 
 import (
