@@ -24,6 +24,7 @@ GO_INTEGRATION_TESTS=$${INTEGRATION_TESTS:-\
 	nrelasticsearch-v7 \
   	nrfasthttp \
 	nrfiber \
+	nrfiber-v3 \
 	nrgin \
 	nrgochi \
 	nrgorilla \
