@@ -350,7 +350,12 @@ type Config struct {
 
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
+		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
 		Enabled bool
+		// Indicates whethher baseline LLM instrumentation will be registered.
+		BasicTelemetry struct {
+			Enabled bool
+		}
 		// Indicates whether streams will be instrumented
 		Streaming struct {
 			Enabled bool
