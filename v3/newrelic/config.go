@@ -351,7 +351,7 @@ type Config struct {
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
-		Enabled bool
+		Enabled *bool
 		// Indicates whethher baseline LLM instrumentation will be registered.
 		BasicTelemetry struct {
 			Enabled bool
@@ -881,7 +881,7 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
-	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Enabled = nil
 	c.AIMonitoring.Streaming.Enabled = true
 	c.AIMonitoring.RecordContent.Enabled = true
 	c.InfiniteTracing.TraceObserver.Port = 443

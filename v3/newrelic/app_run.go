@@ -75,7 +75,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		run.Config.Profiling.Enabled = *v
 	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringEnabled; v != nil {
-		run.Config.AIMonitoring.Enabled = *v
+		run.Config.AIMonitoring.Enabled = v
 	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringStreamingEnabled; v != nil {
 		run.Config.AIMonitoring.Streaming.Enabled = *v
