@@ -81,7 +81,7 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 		run.Config.AIMonitoring.Streaming.Enabled = *v
 	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringRecordContentEnabled; v != nil {
-		run.Config.AIMonitoring.RecordContent.Enabled = *v
+		run.Config.AIMonitoring.RecordContent.Enabled = v
 	}
 	if v := run.Reply.ServerSideConfig.TransactionTracerThreshold; v != nil {
 		switch val := v.(type) {

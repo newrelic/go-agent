@@ -382,7 +382,7 @@ func ConfigAIMonitoringBasicTelemetryEnabled(enabled bool) ConfigOption {
 
 // ConfigAIMonitoringRecordContentEnabled enables or disables the collection of the prompt and
 // response data along with other AI event metadata.
-func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
+func ConfigAIMonitoringRecordContentEnabled(enabled *bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.AIMonitoring.RecordContent.Enabled = enabled
 	}
@@ -762,7 +762,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignUnsetBool(cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED") // DEPRECATED 09/2026 in favor of NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED
 		assignBool(&cfg.AIMonitoring.BasicTelemetry.Enabled, "NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
-		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
+		assignUnsetBool(cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
 		// Transaction Event Env Variables

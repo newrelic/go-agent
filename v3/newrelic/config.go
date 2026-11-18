@@ -351,7 +351,7 @@ type Config struct {
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
-		Enabled *bool
+		Enabled *bool // can be unset
 		// Indicates whethher baseline LLM instrumentation will be registered.
 		BasicTelemetry struct {
 			Enabled bool
@@ -361,7 +361,7 @@ type Config struct {
 			Enabled bool
 		}
 		RecordContent struct {
-			Enabled bool
+			Enabled *bool // can be unset
 		}
 	}
 	// CrossApplicationTracer controls behavior relating to cross application
@@ -882,8 +882,9 @@ func defaultConfig() Config {
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
 	c.AIMonitoring.Enabled = nil
+	c.AIMonitoring.BasicTelemetry.Enabled = true // on by default
 	c.AIMonitoring.Streaming.Enabled = true
-	c.AIMonitoring.RecordContent.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = nil
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
@@ -969,6 +970,8 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 		secure: configHost != localTestingHost,
 	}, nil
 }
+
+// func (c Config) Resolve
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it
 // is less than the default maximum; otherwise it returns the default max.
