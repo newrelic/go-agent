@@ -1169,6 +1169,9 @@ func (s settings) MarshalJSON() ([]byte, error) {
 		fields[`browser_monitoring.loader`] = "rum"
 	}
 
+	// AI Monitoring support
+	fields[`ai_monitoring.enabled`] = c.AIMonitoring.Enabled
+
 	// Protect privacy for restricted fields
 	if clmConfig, ok := fields["CodeLevelMetrics"]; ok {
 		if clmMap, ok := clmConfig.(map[string]interface{}); ok {

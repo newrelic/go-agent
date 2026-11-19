@@ -134,9 +134,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AIMonitoring": {
-				"Enabled": false,
-				"RecordContent": {
+				"BasicTelemetry": {
 					"Enabled": true
+				},
+				"Enabled": null,
+				"RecordContent": {
+					"Enabled": null
 				},
 				"Streaming": {
 					"Enabled": true
@@ -278,6 +281,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			},
+			"ai_monitoring.enabled":null,
 			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
@@ -373,9 +377,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AIMonitoring": {
-				"Enabled": false,
-				"RecordContent": {
+				"BasicTelemetry": {
 					"Enabled": true
+				},
+				"Enabled": null,
+				"RecordContent": {
+					"Enabled": null
 				},
 				"Streaming": {
 					"Enabled": true
@@ -519,6 +526,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			},
+			"ai_monitoring.enabled":null,
 			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
