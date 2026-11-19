@@ -85,8 +85,12 @@ type ConnectReply struct {
 	// TraceObsDialer allows tests to connect to a local TraceObserver directly
 	TraceObsDialer DialerFunc
 
+	// CollectAI is false when AI Monitoring is disabled at the account level.
+	// nil (absent) or true means no action is taken.
+	CollectAI *bool `json:"collect_ai"`
+
 	// BetterCAT/Distributed Tracing
-	AccountID                     string `json:"account_id"`
+	AccountID                    string `json:"account_id"`
 	TrustedAccountKey             string `json:"trusted_account_key"`
 	PrimaryAppID                  string `json:"primary_application_id"`
 	SamplingTarget                uint64 `json:"sampling_target"`

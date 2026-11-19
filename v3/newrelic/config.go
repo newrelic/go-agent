@@ -351,6 +351,9 @@ type Config struct {
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
 		enabledFromSSC bool // true when Enabled was set by the connect reply (SSC)
+		// collectAIDisabled is true when the connect reply has collect_ai=false.
+		// It overrides every other AI Monitoring setting.
+		collectAIDisabled bool
 
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
 		Enabled *bool // can be unset
@@ -975,6 +978,11 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 
 func (c *Config) AIMDataCollection() (collectData bool, recordContent bool) {
 	aimCfg := c.AIMonitoring
+	// collect_ai=false (account level) and High Security Mode override every
+	// other setting.
+	if aimCfg.collectAIDisabled || c.HighSecurity {
+		return false, false
+	}
 	// default ai_monitoring.enabled is unset by default
 	if aimCfg.Enabled == nil {
 		if !aimCfg.BasicTelemetry.Enabled {

@@ -74,6 +74,9 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	if v := run.Reply.ServerSideConfig.ProfilingEnabled; v != nil {
 		run.Config.Profiling.Enabled = *v
 	}
+	if v := run.Reply.CollectAI; v != nil && !*v {
+		run.Config.AIMonitoring.collectAIDisabled = true
+	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringEnabled; v != nil {
 		run.Config.AIMonitoring.Enabled = v
 		run.Config.AIMonitoring.enabledFromSSC = true
