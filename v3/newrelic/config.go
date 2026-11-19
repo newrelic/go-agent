@@ -350,6 +350,8 @@ type Config struct {
 
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
+		overriden bool // when set by SSC
+
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
 		Enabled *bool // can be unset
 		// Indicates whethher baseline LLM instrumentation will be registered.
@@ -971,7 +973,35 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 	}, nil
 }
 
-// func (c Config) Resolve
+func (c *Config) AIMDataCollection() (collectData bool, recordContent bool) {
+	aimCfg := c.AIMonitoring
+	// default ai_monitoring.enabled is unset by default
+	if aimCfg.Enabled == nil {
+		if !aimCfg.BasicTelemetry.Enabled {
+			return false, false
+		}
+		if aimCfg.RecordContent.Enabled == nil {
+			return true, false
+		}
+		if !*aimCfg.RecordContent.Enabled {
+			return true, false
+		}
+		return true, true
+	}
+	// if ai_monitoring.enabled is set
+	if *aimCfg.Enabled {
+		if aimCfg.RecordContent.Enabled == nil {
+			// if SSC overrides this
+			if aimCfg.overriden {
+				return true, false
+			}
+			return true, true
+		}
+		return true, *aimCfg.RecordContent.Enabled
+	}
+	// disabled means we don't collect data or record content
+	return false, false
+}
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it
 // is less than the default maximum; otherwise it returns the default max.
