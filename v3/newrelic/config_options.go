@@ -367,9 +367,9 @@ func ConfigAppLogDecoratingWithinMessage(withinMessage bool) ConfigOption {
 
 // DEPRECATED 09/2026 in favor of ConfigAIMonitoringBasicTelemetryEnabled
 // ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
-func ConfigAIMonitoringEnabled(enabled *bool) ConfigOption {
+func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.AIMonitoring.Enabled = enabled
+		cfg.AIMonitoring.Enabled = &enabled
 	}
 }
 
@@ -382,9 +382,9 @@ func ConfigAIMonitoringBasicTelemetryEnabled(enabled bool) ConfigOption {
 
 // ConfigAIMonitoringRecordContentEnabled enables or disables the collection of the prompt and
 // response data along with other AI event metadata.
-func ConfigAIMonitoringRecordContentEnabled(enabled *bool) ConfigOption {
+func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.AIMonitoring.RecordContent.Enabled = enabled
+		cfg.AIMonitoring.RecordContent.Enabled = &enabled
 	}
 }
 
