@@ -350,7 +350,7 @@ type Config struct {
 
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
-		overriden bool // when set by SSC
+		enabledFromSSC bool // true when Enabled was set by the connect reply (SSC)
 
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
 		Enabled *bool // can be unset
@@ -992,7 +992,7 @@ func (c *Config) AIMDataCollection() (collectData bool, recordContent bool) {
 	if *aimCfg.Enabled {
 		if aimCfg.RecordContent.Enabled == nil {
 			// if SSC overrides this
-			if aimCfg.overriden {
+			if aimCfg.enabledFromSSC {
 				return true, false
 			}
 			return true, true

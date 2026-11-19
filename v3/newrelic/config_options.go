@@ -687,16 +687,16 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			}
 		}
 
-		assignUnsetBool := func(field *bool, name string) {
-			env := getenv(name)
-			if env != "" {
+		// assignUnsetBool sets *field only when the env var is present and valid,
+		// leaving it nil (unset) otherwise.
+		assignUnsetBool := func(field **bool, name string) {
+			if env := getenv(name); env != "" {
 				if b, err := strconv.ParseBool(env); nil != err {
 					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
 				} else {
-					field = &b
+					*field = &b
 				}
 			}
-			field = nil
 		}
 
 		assignIntOk := func(field *int, name string, fn func(configured int) int) bool {
@@ -759,10 +759,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED", maxLogEvents)
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
-		assignUnsetBool(cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED") // DEPRECATED 09/2026 in favor of NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED
+		assignUnsetBool(&cfg.AIMonitoring.Enabled,"NEW_RELIC_AI_MONITORING_ENABLED") // DEPRECATED 09/2026 in favor of NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED
 		assignBool(&cfg.AIMonitoring.BasicTelemetry.Enabled, "NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
-		assignUnsetBool(cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
+		assignUnsetBool(&cfg.AIMonitoring.RecordContent.Enabled,"NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
 		// Transaction Event Env Variables

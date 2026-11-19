@@ -76,6 +76,10 @@ func newAppRun(config config, reply *internal.ConnectReply) *appRun {
 	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringEnabled; v != nil {
 		run.Config.AIMonitoring.Enabled = v
+		run.Config.AIMonitoring.enabledFromSSC = true
+	}
+	if v := run.Reply.ServerSideConfig.AIMonitoringBasicTelemetryEnabled; v != nil {
+		run.Config.AIMonitoring.BasicTelemetry.Enabled = *v
 	}
 	if v := run.Reply.ServerSideConfig.AIMonitoringStreamingEnabled; v != nil {
 		run.Config.AIMonitoring.Streaming.Enabled = *v
