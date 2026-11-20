@@ -114,7 +114,7 @@ func isEnabled(app *newrelic.Application, streaming bool) (bool, bool) {
 		}
 	}
 
-	return config.AIMonitoring.Enabled, config.AIMonitoring.RecordContent.Enabled
+	return config.AIMDataCollection()
 }
 
 // Modeler is any type that can invoke Bedrock models (e.g., bedrockruntime.Client).

@@ -329,6 +329,7 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 		traceID := txn.GetTraceMetadata().TraceID
 
 		appCfg, _ := app.Config()
+		_, recordContent := appCfg.AIMDataCollection()
 		newUUID := uuid.New()
 		newID := newUUID.String()
 		integrationsupport.AddAgentAttribute(txn, "llm", "", true)
@@ -340,7 +341,7 @@ func NRCreateChatCompletionMessageInput(txn *newrelic.Transaction, app *newrelic
 		// Response Data
 		ChatCompletionMessageData["response.model"] = req.Model
 
-		if appCfg.AIMonitoring.RecordContent.Enabled {
+		if recordContent {
 			ChatCompletionMessageData["content"] = message.Content
 		}
 
@@ -380,6 +381,7 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 	spanID := txn.GetTraceMetadata().SpanID
 	traceID := txn.GetTraceMetadata().TraceID
 	appCfg, _ := app.Config()
+	_, recordContent := appCfg.AIMDataCollection()
 
 	integrationsupport.AddAgentAttribute(txn, "llm", "", true)
 	sequence += 1
@@ -398,7 +400,7 @@ func NRCreateChatCompletionMessage(txn *newrelic.Transaction, app *newrelic.Appl
 		// Response Data
 		ChatCompletionMessageData["response.model"] = resp.Model
 
-		if appCfg.AIMonitoring.RecordContent.Enabled {
+		if recordContent {
 			ChatCompletionMessageData["content"] = choice.Message.Content
 		}
 
@@ -437,6 +439,7 @@ func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UU
 	traceID := sw.txn.GetTraceMetadata().TraceID
 
 	appCfg, _ := app.Config()
+	_, recordContent := appCfg.AIMDataCollection()
 
 	integrationsupport.AddAgentAttribute(sw.txn, "llm", "", true)
 
@@ -448,7 +451,7 @@ func NRCreateChatCompletionMessageStream(app *newrelic.Application, uuid uuid.UU
 	// Response Data
 	ChatCompletionMessageData["request.model"] = sw.model
 
-	if appCfg.AIMonitoring.RecordContent.Enabled {
+	if recordContent {
 		ChatCompletionMessageData["content"] = sw.responseStr
 	}
 
@@ -532,7 +535,8 @@ func NRCreateChatCompletionStream(cw *ClientWrapper, ctx context.Context, req op
 		}
 	}
 	// If AI Monitoring OR AIMonitoring.Streaming is disabled, do not start a transaction but still perform the request
-	if !config.AIMonitoring.Enabled || !config.AIMonitoring.Streaming.Enabled {
+	collectData, _ := config.AIMDataCollection()
+	if !collectData || !config.AIMonitoring.Streaming.Enabled {
 		stream, err := cw.Client.CreateChatCompletionStream(ctx, req)
 		if err != nil {
 			return &ChatCompletionStreamWrapper{stream: stream}, err
@@ -603,7 +607,8 @@ func NRCreateChatCompletion(cw *ClientWrapper, req openai.ChatCompletionRequest,
 
 	resp := ChatCompletionResponseWrapper{}
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
-	if !config.AIMonitoring.Enabled {
+	collectData, _ := config.AIMDataCollection()
+	if !collectData {
 		chatresp, err := cw.Client.CreateChatCompletion(context.Background(), req)
 		resp.ChatCompletionResponse = chatresp
 		if err != nil {
@@ -627,7 +632,8 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	resp := openai.EmbeddingResponse{}
 
 	// If AI Monitoring is disabled, do not start a transaction but still perform the request
-	if !config.AIMonitoring.Enabled {
+	collectData, recordContent := config.AIMDataCollection()
+	if !collectData {
 		resp, err := cw.Client.CreateEmbeddings(context.Background(), req)
 		if err != nil {
 
@@ -663,7 +669,7 @@ func NRCreateEmbedding(cw *ClientWrapper, req openai.EmbeddingRequest, app *newr
 	}
 
 	// Request Data
-	if config.AIMonitoring.RecordContent.Enabled {
+	if recordContent {
 		EmbeddingsData["input"] = GetInput(req.Input)
 	}
 
