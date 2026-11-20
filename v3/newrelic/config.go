@@ -351,9 +351,9 @@ type Config struct {
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
 		enabledFromSSC bool // true when Enabled was set by the connect reply (SSC)
-		// collectAIDisabled is true when the connect reply has collect_ai=false.
-		// It overrides every other AI Monitoring setting.
-		collectAIDisabled bool
+		// collectAIEnabled mirrors collect_ai from the connect reply. It defaults
+		// to true; when false it overrides every other AI Monitoring setting.
+		collectAIEnabled bool
 
 		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
 		Enabled *bool // can be unset
@@ -887,6 +887,7 @@ func defaultConfig() Config {
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
 	c.AIMonitoring.Enabled = nil
+	c.AIMonitoring.collectAIEnabled = true
 	c.AIMonitoring.BasicTelemetry.Enabled = true // on by default
 	c.AIMonitoring.Streaming.Enabled = true
 	c.AIMonitoring.RecordContent.Enabled = nil
@@ -980,7 +981,7 @@ func (c *Config) AIMDataCollection() (collectData bool, recordContent bool) {
 	aimCfg := c.AIMonitoring
 	// collect_ai=false (account level) and High Security Mode override every
 	// other setting.
-	if aimCfg.collectAIDisabled || c.HighSecurity {
+	if !aimCfg.collectAIEnabled || c.HighSecurity {
 		return false, false
 	}
 	// default ai_monitoring.enabled is unset by default
