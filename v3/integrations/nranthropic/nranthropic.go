@@ -93,7 +93,8 @@ func (c *NRClient) AddCustomAttributes(attrs map[string]interface{}) {
 // to the underlying SDK without instrumentation.
 func (s *NRMessageService) New(ctx context.Context, params anthropic.MessageNewParams, opts ...option.RequestOption) (*anthropic.Message, error) {
 	cfg, _ := s.app.Config()
-	if !cfg.AIMonitoring.Enabled {
+	collectData, _ := cfg.AIMDataCollection()
+	if !collectData {
 		return s.messages.New(ctx, params, opts...)
 	}
 
@@ -165,6 +166,7 @@ func (s *NRMessageService) recordSummary(completionID, spanID, traceID string, p
 
 func (s *NRMessageService) recordMessages(completionID, spanID, traceID string, params anthropic.MessageNewParams, resp *anthropic.Message) {
 	cfg, _ := s.app.Config()
+	_, recordContent := cfg.AIMDataCollection()
 	model := string(params.Model)
 	if resp != nil {
 		model = string(resp.Model)
@@ -183,7 +185,7 @@ func (s *NRMessageService) recordMessages(completionID, spanID, traceID string, 
 			"vendor":         "anthropic",
 			"ingest_source":  "Go",
 		}
-		if cfg.AIMonitoring.RecordContent.Enabled && text != "" {
+		if recordContent && text != "" {
 			data["content"] = text
 		}
 		if tokens, ok := s.app.InvokeLLMTokenCountCallback(model, text); ok {
@@ -211,7 +213,7 @@ func (s *NRMessageService) recordMessages(completionID, spanID, traceID string, 
 		"ingest_source":  "Go",
 		"is_response":    true,
 	}
-	if cfg.AIMonitoring.RecordContent.Enabled && responseText != "" {
+	if recordContent && responseText != "" {
 		data["content"] = responseText
 	}
 	if tokens, ok := s.app.InvokeLLMTokenCountCallback(model, responseText); ok {
@@ -280,7 +282,8 @@ func (s *NRMessageService) NewStreaming(ctx context.Context, params anthropic.Me
 		}
 	}
 
-	if !cfg.AIMonitoring.Enabled || !cfg.AIMonitoring.Streaming.Enabled {
+	collectData, _ := cfg.AIMDataCollection()
+	if !collectData || !cfg.AIMonitoring.Streaming.Enabled {
 		return &NRMessageStreamWrapper{
 			app:    s.app,
 			params: params,
@@ -358,7 +361,8 @@ func (w *NRMessageStreamWrapper) Close() error {
 
 func (w *NRMessageStreamWrapper) recordCustomEvent() {
 	cfg, _ := w.app.Config()
-	if !cfg.AIMonitoring.Enabled || !cfg.AIMonitoring.Streaming.Enabled {
+	collectData, recordContent := cfg.AIMDataCollection()
+	if !collectData || !cfg.AIMonitoring.Streaming.Enabled {
 		return
 	}
 
@@ -423,7 +427,7 @@ func (w *NRMessageStreamWrapper) recordCustomEvent() {
 			"vendor":         "anthropic",
 			"ingest_source":  "Go",
 		}
-		if cfg.AIMonitoring.RecordContent.Enabled && text != "" {
+		if recordContent && text != "" {
 			msgData["content"] = text
 		}
 		if tokens, ok := w.app.InvokeLLMTokenCountCallback(model, text); ok {
@@ -451,7 +455,7 @@ func (w *NRMessageStreamWrapper) recordCustomEvent() {
 		"ingest_source":  "Go",
 		"is_response":    true,
 	}
-	if cfg.AIMonitoring.RecordContent.Enabled && responseText != "" {
+	if recordContent && responseText != "" {
 		respData["content"] = responseText
 	}
 	if tokens, ok := w.app.InvokeLLMTokenCountCallback(model, responseText); ok {

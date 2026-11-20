@@ -350,13 +350,23 @@ type Config struct {
 
 	// AIMonitoring controls the behavior of AI monitoring features.
 	AIMonitoring struct {
-		Enabled bool
+		enabledFromSSC bool // true when Enabled was set by the connect reply (SSC)
+		// collectAIEnabled mirrors collect_ai from the connect reply. It defaults
+		// to true; when false it overrides every other AI Monitoring setting.
+		collectAIEnabled bool
+
+		// DEPRECATED 09/2026 in favor of AIMonitoring.BasicTelemetry.Enabled
+		Enabled *bool // can be unset
+		// Indicates whethher baseline LLM instrumentation will be registered.
+		BasicTelemetry struct {
+			Enabled bool
+		}
 		// Indicates whether streams will be instrumented
 		Streaming struct {
 			Enabled bool
 		}
 		RecordContent struct {
-			Enabled bool
+			Enabled *bool // can be unset
 		}
 	}
 	// CrossApplicationTracer controls behavior relating to cross application
@@ -876,9 +886,11 @@ func defaultConfig() Config {
 	c.Heroku.UseDynoNames = true
 	c.Heroku.DynoNamePrefixesToShorten = []string{"scheduler", "run"}
 
-	c.AIMonitoring.Enabled = false
+	c.AIMonitoring.Enabled = nil
+	c.AIMonitoring.collectAIEnabled = true
+	c.AIMonitoring.BasicTelemetry.Enabled = true // on by default
 	c.AIMonitoring.Streaming.Enabled = true
-	c.AIMonitoring.RecordContent.Enabled = true
+	c.AIMonitoring.RecordContent.Enabled = nil
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
@@ -963,6 +975,41 @@ func (c Config) validateTraceObserverConfig() (*observerURL, error) {
 		host:   fmt.Sprintf("%s:%d", configHost, c.InfiniteTracing.TraceObserver.Port),
 		secure: configHost != localTestingHost,
 	}, nil
+}
+
+func (c *Config) AIMDataCollection() (collectData bool, recordContent bool) {
+	aimCfg := c.AIMonitoring
+	// collect_ai=false (account level) and High Security Mode override every
+	// other setting.
+	if !aimCfg.collectAIEnabled || c.HighSecurity {
+		return false, false
+	}
+	// default ai_monitoring.enabled is unset by default
+	if aimCfg.Enabled == nil {
+		if !aimCfg.BasicTelemetry.Enabled {
+			return false, false
+		}
+		if aimCfg.RecordContent.Enabled == nil {
+			return true, false
+		}
+		if !*aimCfg.RecordContent.Enabled {
+			return true, false
+		}
+		return true, true
+	}
+	// if ai_monitoring.enabled is set
+	if *aimCfg.Enabled {
+		if aimCfg.RecordContent.Enabled == nil {
+			// if SSC overrides this
+			if aimCfg.enabledFromSSC {
+				return true, false
+			}
+			return true, true
+		}
+		return true, *aimCfg.RecordContent.Enabled
+	}
+	// disabled means we don't collect data or record content
+	return false, false
 }
 
 // maxTxnEvents returns the configured maximum number of Transaction Events if it
@@ -1122,6 +1169,9 @@ func (s settings) MarshalJSON() ([]byte, error) {
 	if c.BrowserMonitoring.Enabled {
 		fields[`browser_monitoring.loader`] = "rum"
 	}
+
+	// AI Monitoring support
+	fields[`ai_monitoring.enabled`] = c.AIMonitoring.Enabled
 
 	// Protect privacy for restricted fields
 	if clmConfig, ok := fields["CodeLevelMetrics"]; ok {

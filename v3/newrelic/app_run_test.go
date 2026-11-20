@@ -158,33 +158,41 @@ func TestTxnTraceThreshold(t *testing.T) {
 }
 
 func TestServerSideConfigAIMonitoringEnabled(t *testing.T) {
-	// Server-side config enables a locally disabled setting.
+	enabledFalse := false
+	enabledTrue := true
 	cfg := config{Config: defaultConfig()}
-	cfg.AIMonitoring.Enabled = false
 	reply := internal.ConnectReplyDefaults()
-	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.enabled":true}}`), &reply)
 	run := newAppRun(cfg, reply)
-	if !run.Config.AIMonitoring.Enabled {
+	if run.Config.AIMonitoring.Enabled != nil {
+		t.Error("AIMonitoring.Enabled set by defaultConfig and unchanged by default connect reply")
+	}
+
+	// Server-side config enabled a locally disabled setting.
+	cfg.AIMonitoring.Enabled = &enabledFalse
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.enabled":true}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !*run.Config.AIMonitoring.Enabled {
 		t.Error("AIMonitoring.Enabled not enabled by server-side config")
 	}
 
-	// Server-side config disables a locally enabled setting.
+	// Server-side config dsiables a locally enabled setting.
 	cfg = config{Config: defaultConfig()}
-	cfg.AIMonitoring.Enabled = true
+	cfg.AIMonitoring.Enabled = &enabledTrue
 	reply = internal.ConnectReplyDefaults()
 	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.enabled":false}}`), &reply)
 	run = newAppRun(cfg, reply)
-	if run.Config.AIMonitoring.Enabled {
+	if *run.Config.AIMonitoring.Enabled {
 		t.Error("AIMonitoring.Enabled not disabled by server-side config")
 	}
 
 	// Absent server-side config leaves the local setting untouched.
 	cfg = config{Config: defaultConfig()}
-	cfg.AIMonitoring.Enabled = true
+	cfg.AIMonitoring.Enabled = &enabledTrue
 	reply = internal.ConnectReplyDefaults()
 	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
 	run = newAppRun(cfg, reply)
-	if !run.Config.AIMonitoring.Enabled {
+	if !*run.Config.AIMonitoring.Enabled {
 		t.Error("AIMonitoring.Enabled changed despite absent server-side config")
 	}
 }
@@ -220,35 +228,74 @@ func TestServerSideConfigAIMonitoringStreamingEnabled(t *testing.T) {
 		t.Error("AIMonitoring.Streaming.Enabled changed despite absent server-side config")
 	}
 }
+func TestServerSideConfigAIMonitoringBasicTelemetryEnabled(t *testing.T) {
+	// Server-side config unset doesn't change local set (default on)
+	cfg := config{Config: defaultConfig()}
+	reply := internal.ConnectReplyDefaults()
+	run := newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.BasicTelemetry.Enabled {
+		t.Error("AIMonitoring.BasicTelemetry.Enabled not enabled by server-side config")
+	}
+
+	// Server-side config disables a locally enabled setting.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.BasicTelemetry.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.basic_telemetry.enabled":false}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if run.Config.AIMonitoring.BasicTelemetry.Enabled {
+		t.Error("AIMonitoring.BasicTelemetry.Enabled not disabled by server-side config")
+	}
+
+	// Absent server-side config leaves the local setting untouched.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.BasicTelemetry.Enabled = true
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !run.Config.AIMonitoring.BasicTelemetry.Enabled {
+		t.Error("AIMonitoring.BasicTelemetry.Enabled changed despite absent server-side config")
+	}
+}
 
 func TestServerSideConfigAIMonitoringRecordContentEnabled(t *testing.T) {
-	// Server-side config enables a locally disabled setting.
+	enabledFalse := false
+	enabledTrue := true
+	// Server-side config doesn't change a locally unset setting.
 	cfg := config{Config: defaultConfig()}
-	cfg.AIMonitoring.RecordContent.Enabled = false
 	reply := internal.ConnectReplyDefaults()
-	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.record_content.enabled":true}}`), &reply)
 	run := newAppRun(cfg, reply)
-	if !run.Config.AIMonitoring.RecordContent.Enabled {
+	if run.Config.AIMonitoring.RecordContent.Enabled != nil {
+		t.Error("AIMonitoring.Enabled changed despite absent server-side config")
+	}
+
+	// Server-side config enables a locally disabled setting.
+	cfg = config{Config: defaultConfig()}
+	cfg.AIMonitoring.RecordContent.Enabled = &enabledFalse
+	reply = internal.ConnectReplyDefaults()
+	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.record_content.enabled":true}}`), &reply)
+	run = newAppRun(cfg, reply)
+	if !*run.Config.AIMonitoring.RecordContent.Enabled {
 		t.Error("AIMonitoring.RecordContent.Enabled not enabled by server-side config")
 	}
 
 	// Server-side config disables a locally enabled setting.
 	cfg = config{Config: defaultConfig()}
-	cfg.AIMonitoring.RecordContent.Enabled = true
+	cfg.AIMonitoring.RecordContent.Enabled = &enabledTrue
 	reply = internal.ConnectReplyDefaults()
 	json.Unmarshal([]byte(`{"agent_config":{"ai_monitoring.record_content.enabled":false}}`), &reply)
 	run = newAppRun(cfg, reply)
-	if run.Config.AIMonitoring.RecordContent.Enabled {
+	if *run.Config.AIMonitoring.RecordContent.Enabled {
 		t.Error("AIMonitoring.RecordContent.Enabled not disabled by server-side config")
 	}
 
 	// Absent server-side config leaves the local setting untouched.
 	cfg = config{Config: defaultConfig()}
-	cfg.AIMonitoring.RecordContent.Enabled = true
+	cfg.AIMonitoring.RecordContent.Enabled = &enabledTrue
 	reply = internal.ConnectReplyDefaults()
 	json.Unmarshal([]byte(`{"agent_config":{}}`), &reply)
 	run = newAppRun(cfg, reply)
-	if !run.Config.AIMonitoring.RecordContent.Enabled {
+	if !*run.Config.AIMonitoring.RecordContent.Enabled {
 		t.Error("AIMonitoring.RecordContent.Enabled changed despite absent server-side config")
 	}
 }
