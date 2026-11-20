@@ -72,7 +72,7 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAddCustomAttributes(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, successHandler)...)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -84,7 +84,7 @@ func TestAddCustomAttributes(t *testing.T) {
 }
 
 func TestAddCustomAttributesIncorrectPrefix(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, successHandler)...)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -96,7 +96,7 @@ func TestAddCustomAttributesIncorrectPrefix(t *testing.T) {
 }
 
 func TestNRMessagesNew(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, successHandler)...)
 
 	resp, err := nrClient.Messages.New(context.Background(), anthropic.MessageNewParams{
@@ -174,7 +174,7 @@ func TestNRMessagesNew(t *testing.T) {
 }
 
 func TestNRMessagesNewAIMonitoringNotEnabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false)) // AI monitoring NOT enabled
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, successHandler)...)
 
 	resp, err := nrClient.Messages.New(context.Background(), anthropic.MessageNewParams{
@@ -195,7 +195,7 @@ func TestNRMessagesNewAIMonitoringNotEnabled(t *testing.T) {
 }
 
 func TestNRMessagesNewError(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, errorHandler)...)
 
 	_, err := nrClient.Messages.New(context.Background(), anthropic.MessageNewParams{
@@ -313,7 +313,7 @@ func streamingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestNRMessagesNewWithExistingTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, successHandler)...)
 
 	txn := app.StartTransaction("my-existing-txn")
@@ -358,7 +358,7 @@ func TestNRMessagesNewWithExistingTxn(t *testing.T) {
 }
 
 func TestNRMessagesNewStreaming(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	stream := nrClient.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
@@ -439,7 +439,7 @@ func TestNRMessagesNewStreaming(t *testing.T) {
 }
 
 func TestNRMessagesNewStreamingAIMonitoringNotEnabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false)) // AI monitoring NOT enabled
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	stream := nrClient.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
@@ -461,7 +461,6 @@ func TestNRMessagesNewStreamingAIMonitoringNotEnabled(t *testing.T) {
 func TestNRMessagesNewStreamingDisabled(t *testing.T) {
 	// AI monitoring enabled but streaming specifically disabled — no txn should be started.
 	app := integrationsupport.NewTestApp(nil,
-		newrelic.ConfigAIMonitoringEnabled(true),
 		func(cfg *newrelic.Config) { cfg.AIMonitoring.Streaming.Enabled = false },
 		noCodeLevelMetrics,
 	)
@@ -492,7 +491,7 @@ func TestNRMessagesNewStreamingDisabled(t *testing.T) {
 }
 
 func TestNRMessagesNewStreamingWithExistingTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	txn := app.StartTransaction("my-existing-streaming-txn")
@@ -644,7 +643,7 @@ func TestStreamWrapperAppendCustomAttrsEmpty(t *testing.T) {
 // --- NRClient.AddCustomAttributes additional tests ---
 
 func TestAddCustomAttributesMixed(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -674,7 +673,7 @@ func TestAddCustomAttributesEmpty(t *testing.T) {
 
 func newTestService(t *testing.T) (*NRMessageService, integrationsupport.ExpectApp) {
 	t.Helper()
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	svc := &NRMessageService{
 		app:              app.Application,
 		customAttributes: make(map[string]interface{}),
@@ -905,9 +904,10 @@ func TestRecordMessagesNilResp(t *testing.T) {
 }
 
 func TestRecordMessagesContentDisabled(t *testing.T) {
+	enabledFalse := false
 	app := integrationsupport.NewTestApp(nil,
-		newrelic.ConfigAIMonitoringEnabled(true),
-		func(cfg *newrelic.Config) { cfg.AIMonitoring.RecordContent.Enabled = false },
+
+		func(cfg *newrelic.Config) { cfg.AIMonitoring.RecordContent.Enabled = &enabledFalse },
 		noCodeLevelMetrics,
 	)
 	svc := &NRMessageService{
@@ -966,7 +966,7 @@ func TestRecordMessagesContentDisabled(t *testing.T) {
 // --- NRMessageStreamWrapper.Next state accumulation ---
 
 func TestStreamWrapperNextAccumulatesState(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	stream := nrClient.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
@@ -1002,7 +1002,7 @@ func TestStreamWrapperNextAccumulatesState(t *testing.T) {
 // --- NRMessageStreamWrapper.Close tests (post-refactor) ---
 
 func TestStreamWrapperCloseReturnsNilOnSuccess(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	stream := nrClient.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
@@ -1021,7 +1021,7 @@ func TestStreamWrapperCloseReturnsNilOnSuccess(t *testing.T) {
 }
 
 func TestStreamWrapperCloseEndsTxnWhenOwned(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	// No txn in context — wrapper creates and owns the transaction.
@@ -1056,7 +1056,7 @@ func TestStreamWrapperCloseEndsTxnWhenOwned(t *testing.T) {
 }
 
 func TestStreamWrapperCloseNoTxnEndWhenNotOwned(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := NewClient(app.Application, mockAnthropicServer(t, streamingHandler)...)
 
 	// Inject an existing txn — wrapper must NOT end it.
