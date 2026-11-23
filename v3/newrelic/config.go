@@ -779,6 +779,18 @@ type Config struct {
 		// than the Otel configuration and/or environment variable configuration which
 		// did this, IT will have the final word).
 		ServiceNameOverride bool
+		Traces              struct {
+			// Enabled controls whether the Trace API sends traces to New Relic.
+			Enabled bool
+			// Include is a comma-delimited list of OTel Tracers represented as a string.
+			// For instance: "TracerName1,TracerName2". These tracers will have their traces
+			// sent to New Relic.
+			Include string
+			// Exclude is a comma-delimited list of OTel Tracers represented as a string.
+			// For instance: "TracerName1,TracerName2". These tracers will have their traces
+			// excluded from being sent to New Relic.
+			Exclude string
+		}
 	}
 }
 
