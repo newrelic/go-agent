@@ -139,7 +139,7 @@ func responseText(resp *genai.GenerateContentResponse) string {
 
 // drainStream consumes a stream the way calling code is expected to.
 func TestAddCustomAttributes(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -151,7 +151,7 @@ func TestAddCustomAttributes(t *testing.T) {
 }
 
 func TestAddCustomAttributesIncorrectPrefix(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -163,7 +163,7 @@ func TestAddCustomAttributesIncorrectPrefix(t *testing.T) {
 }
 
 func TestGenerateContent(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	resp, err := nrClient.Models.GenerateContent(context.Background(), testModel, genai.Text(testPrompt), &genai.GenerateContentConfig{MaxOutputTokens: 150})
@@ -241,7 +241,7 @@ func TestGenerateContent(t *testing.T) {
 }
 
 func TestGenerateContentAIMonitoringNotEnabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false)) // AI monitoring NOT enabled
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	resp, err := nrClient.Models.GenerateContent(context.Background(), testModel, genai.Text(testPrompt), nil)
@@ -255,7 +255,7 @@ func TestGenerateContentAIMonitoringNotEnabled(t *testing.T) {
 }
 
 func TestGenerateContentError(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := mockGeminiClient(t, app.Application, errorHandler)
 
 	_, err := nrClient.Models.GenerateContent(context.Background(), testModel, genai.Text(testPrompt), &genai.GenerateContentConfig{MaxOutputTokens: 150})
@@ -328,7 +328,7 @@ func TestGenerateContentError(t *testing.T) {
 }
 
 func TestGenerateContentWithExistingTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	txn := app.StartTransaction("my-existing-txn")
@@ -492,7 +492,7 @@ func TestAppendCustomAttrsEmpty(t *testing.T) {
 // --- NRClient.AddCustomAttributes additional tests ---
 
 func TestAddCustomAttributesMixed(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, successHandler)
 
 	nrClient.AddCustomAttributes(map[string]interface{}{
@@ -522,7 +522,7 @@ func TestAddCustomAttributesEmpty(t *testing.T) {
 
 func newTestService(t *testing.T) (*NRModelsService, integrationsupport.ExpectApp) {
 	t.Helper()
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	svc := &NRModelsService{
 		app:              app.Application,
 		customAttributes: make(map[string]interface{}),
@@ -745,7 +745,7 @@ func TestRecordMessagesWithResp(t *testing.T) {
 		},
 	}
 
-	svc.recordMessages(newTestCompletion(nil, resp, nil, 0))
+	svc.recordMessages(newTestCompletion(nil, resp, nil, 0), true)
 
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
@@ -793,7 +793,7 @@ func TestRecordMessagesWithResp(t *testing.T) {
 func TestRecordMessagesNilResp(t *testing.T) {
 	svc, app := newTestService(t)
 
-	svc.recordMessages(newTestCompletion(nil, nil, nil, 0))
+	svc.recordMessages(newTestCompletion(nil, nil, nil, 0), true)
 
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
@@ -818,9 +818,10 @@ func TestRecordMessagesNilResp(t *testing.T) {
 }
 
 func TestRecordMessagesContentDisabled(t *testing.T) {
+	enabledFalse := false
 	app := integrationsupport.NewTestApp(nil,
-		newrelic.ConfigAIMonitoringEnabled(true),
-		func(cfg *newrelic.Config) { cfg.AIMonitoring.RecordContent.Enabled = false },
+
+		func(cfg *newrelic.Config) { cfg.AIMonitoring.RecordContent.Enabled = &enabledFalse },
 		noCodeLevelMetrics,
 	)
 	svc := &NRModelsService{
@@ -837,8 +838,8 @@ func TestRecordMessagesContentDisabled(t *testing.T) {
 			}},
 		},
 	}
-
-	svc.recordMessages(newTestCompletion(nil, resp, nil, 0))
+	cfg, _ := app.Config()
+	svc.recordMessages(newTestCompletion(nil, resp, nil, 0), *cfg.AIMonitoring.RecordContent.Enabled)
 
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
@@ -895,7 +896,7 @@ func TestGenerateContentLongPromptNotTruncated(t *testing.T) {
 		},
 	}
 
-	svc.recordMessages(&completion{id: "cid", spanID: "sid", traceID: "tid", model: testModel, contents: genai.Text(longPrompt), resp: resp})
+	svc.recordMessages(&completion{id: "cid", spanID: "sid", traceID: "tid", model: testModel, contents: genai.Text(longPrompt), resp: resp}, true)
 
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
@@ -953,7 +954,7 @@ func TestRecordMessagesMultipleCandidates(t *testing.T) {
 			{Content: &genai.Content{Role: genai.RoleModel, Parts: []*genai.Part{{Text: "second"}}}},
 		},
 	}
-	svc.recordMessages(newTestCompletion(nil, resp, nil, 0))
+	svc.recordMessages(newTestCompletion(nil, resp, nil, 0), true)
 
 	events := []internal.WantEvent{
 		{
@@ -1172,7 +1173,7 @@ func TestRecordMessagesNonTextOnly(t *testing.T) {
 			Parts: []*genai.Part{{InlineData: &genai.Blob{MIMEType: "image/png"}}},
 		}},
 	}
-	svc.recordMessages(c)
+	svc.recordMessages(c, true)
 
 	app.ExpectCustomEvents(t, []internal.WantEvent{
 		{
@@ -1209,7 +1210,7 @@ func drainStream(seq iter.Seq2[*genai.GenerateContentResponse, error]) error {
 // The wrapper returns the SDK's own iter.Seq2, so a caller ranges over it exactly
 // as they would the unwrapped client, and the events land when the loop ends.
 func TestGenerateContentStream(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	var got strings.Builder
@@ -1281,7 +1282,7 @@ func TestGenerateContentStream(t *testing.T) {
 // Breaking out of the loop early still records, covering the chunks seen so far.
 // finish_reason is absent because it arrives on the last chunk.
 func TestGenerateContentStreamEarlyBreak(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	chunks := 0
@@ -1347,7 +1348,7 @@ func TestGenerateContentStreamEarlyBreak(t *testing.T) {
 }
 
 func TestGenerateContentStreamAIMonitoringNotEnabled(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil) // AI monitoring NOT enabled
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false)) // AI monitoring NOT enabled
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	if err := drainStream(nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)); err != nil {
@@ -1361,7 +1362,6 @@ func TestGenerateContentStreamAIMonitoringNotEnabled(t *testing.T) {
 // no transaction is started and nothing is recorded.
 func TestGenerateContentStreamDisabled(t *testing.T) {
 	app := integrationsupport.NewTestApp(nil,
-		newrelic.ConfigAIMonitoringEnabled(true),
 		func(cfg *newrelic.Config) { cfg.AIMonitoring.Streaming.Enabled = false },
 		noCodeLevelMetrics,
 	)
@@ -1376,7 +1376,7 @@ func TestGenerateContentStreamDisabled(t *testing.T) {
 
 // A caller-supplied transaction is left for the caller to end.
 func TestGenerateContentStreamWithExistingTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	txn := app.StartTransaction("my-existing-streaming-txn")
@@ -1407,7 +1407,7 @@ func TestGenerateContentStreamWithExistingTxn(t *testing.T) {
 
 // With no transaction in the context the stream starts and ends its own.
 func TestGenerateContentStreamStartsOwnTxn(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	if err := drainStream(nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)); err != nil {
@@ -1435,7 +1435,7 @@ func TestGenerateContentStreamStartsOwnTxn(t *testing.T) {
 
 // Ranging a second time must not report the completion twice.
 func TestGenerateContentStreamSingleUse(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	nrClient := mockGeminiClient(t, app.Application, streamingHandler)
 
 	seq := nrClient.Models.GenerateContentStream(context.Background(), testModel, genai.Text(testPrompt), nil)
@@ -1516,7 +1516,7 @@ func textChunk(deltas ...string) *genai.GenerateContentResponse {
 }
 
 func TestStreamStateAccumulates(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("accumulate")
 	defer txn.End()
 
@@ -1552,7 +1552,7 @@ func TestStreamStateAccumulates(t *testing.T) {
 }
 
 func TestStreamStateConcatenatesDeltas(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("deltas")
 	defer txn.End()
 
@@ -1566,7 +1566,7 @@ func TestStreamStateConcatenatesDeltas(t *testing.T) {
 }
 
 func TestStreamStateManyChunks(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("many-chunks")
 	defer txn.End()
 
@@ -1584,7 +1584,7 @@ func TestStreamStateManyChunks(t *testing.T) {
 
 // Each candidate accumulates its own deltas.
 func TestStreamStatePerCandidate(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("two-candidates")
 	defer txn.End()
 
@@ -1604,7 +1604,7 @@ func TestStreamStatePerCandidate(t *testing.T) {
 }
 
 func TestStreamStateTimeToFirstTokenSetOnce(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("ttft")
 	defer txn.End()
 
@@ -1623,7 +1623,7 @@ func TestStreamStateTimeToFirstTokenSetOnce(t *testing.T) {
 }
 
 func TestStreamStateDurationStampedAsChunksArrive(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("duration")
 	defer txn.End()
 
@@ -1647,7 +1647,7 @@ func TestStreamStateDurationWhenNothingYielded(t *testing.T) {
 }
 
 func TestStreamStateKeepsFirstError(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("errors")
 	defer txn.End()
 
@@ -1669,7 +1669,7 @@ func TestStreamStateKeepsFirstError(t *testing.T) {
 // A yield carrying neither a chunk nor an error must not mark the stream as
 // observed, or finish would skip measuring the duration and report zero.
 func TestStreamStateEmptyYieldLeavesDurationMeasured(t *testing.T) {
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true), noCodeLevelMetrics)
+	app := integrationsupport.NewTestApp(nil, noCodeLevelMetrics)
 	txn := app.StartTransaction("empty-yield")
 	defer txn.End()
 

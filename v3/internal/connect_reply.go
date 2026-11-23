@@ -85,6 +85,10 @@ type ConnectReply struct {
 	// TraceObsDialer allows tests to connect to a local TraceObserver directly
 	TraceObsDialer DialerFunc
 
+	// CollectAI is false when AI Monitoring is disabled at the account level.
+	// nil (absent) or true means no action is taken.
+	CollectAI *bool `json:"collect_ai"`
+
 	// BetterCAT/Distributed Tracing
 	AccountID                     string `json:"account_id"`
 	TrustedAccountKey             string `json:"trusted_account_key"`
@@ -104,6 +108,7 @@ type ConnectReply struct {
 		CrossApplicationTracerEnabled        *bool       `json:"cross_application_tracer.enabled"`
 		ProfilingEnabled                     *bool       `json:"profiling.enabled"`
 		AIMonitoringEnabled                  *bool       `json:"ai_monitoring.enabled"`
+		AIMonitoringBasicTelemetryEnabled    *bool       `json:"ai_monitoring.basic_telemetry.enabled"`
 		AIMonitoringStreamingEnabled         *bool       `json:"ai_monitoring.streaming.enabled"`
 		AIMonitoringRecordContentEnabled     *bool       `json:"ai_monitoring.record_content.enabled"`
 	} `json:"agent_config"`

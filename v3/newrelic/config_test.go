@@ -134,9 +134,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AIMonitoring": {
-				"Enabled": false,
-				"RecordContent": {
+				"BasicTelemetry": {
 					"Enabled": true
+				},
+				"Enabled": null,
+				"RecordContent": {
+					"Enabled": null
 				},
 				"Streaming": {
 					"Enabled": true
@@ -278,6 +281,7 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			},
+			"ai_monitoring.enabled":null,
 			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
@@ -373,9 +377,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 		"host":"my-hostname",
 		"settings":{
 			"AIMonitoring": {
-				"Enabled": false,
-				"RecordContent": {
+				"BasicTelemetry": {
 					"Enabled": true
+				},
+				"Enabled": null,
+				"RecordContent": {
+					"Enabled": null
 				},
 				"Streaming": {
 					"Enabled": true
@@ -519,6 +526,7 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"LogicalProcessors":0,
 				"TotalRAMMIB":0
 			},
+			"ai_monitoring.enabled":null,
 			"browser_monitoring.loader":"rum"
 		},
 		"app_name":["my appname"],
@@ -1390,6 +1398,195 @@ func Test_validateAWSAccountID(t *testing.T) {
 			}
 			if tt.wantErr {
 				t.Fatal("validateAWSAccountID() succeeded unexpectedly")
+			}
+		})
+	}
+}
+
+func TestConfig_AIMDataCollection(t *testing.T) {
+	enabledTrue := true
+	enabledFalse := false
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for receiver constructor.
+		cfgOptions        ConfigOption
+		wantCollectData   bool
+		wantRecordContent bool
+	}{
+		{
+			name: "collect_ai is set to false.  Every other enabled is set to default. Should return false, false.",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.collectAIEnabled = false
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "collect_ai is set to false and high_security is set to true. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.collectAIEnabled = false
+				c.HighSecurity = true
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "collect_ai is set to true and high_security is set to true. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.collectAIEnabled = true
+				c.HighSecurity = true
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "collect_ai is set to false and all other AI configs are enabled. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.collectAIEnabled = false
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.BasicTelemetry.Enabled = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "collect_ai is true, high_security is true, and all other AI configs are enabled. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.HighSecurity = true
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.BasicTelemetry.Enabled = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name:              "all defaults. basic_telemetry is on by default and record_content is unset. Should return true, false",
+			cfgOptions:        func(c *Config) {},
+			wantCollectData:   true,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is unset and basic_telemetry.enabled is false. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.BasicTelemetry.Enabled = false
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is unset, basic_telemetry.enabled is false, and record_content.enabled is true. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.BasicTelemetry.Enabled = false
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is unset, basic_telemetry.enabled is true, and record_content.enabled is false. Should return true, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.BasicTelemetry.Enabled = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledFalse
+			},
+			wantCollectData:   true,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is unset, basic_telemetry.enabled is true, and record_content.enabled is true. Should return true, true",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.BasicTelemetry.Enabled = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   true,
+			wantRecordContent: true,
+		},
+		{
+			name: "ai_monitoring.enabled is false locally and basic_telemetry.enabled and record_content.enabled are true. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledFalse
+				c.AIMonitoring.BasicTelemetry.Enabled = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is false via SSC. Should return false, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledFalse
+				c.AIMonitoring.enabledFromSSC = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   false,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is true locally and record_content.enabled is unset. Content is forced on. Should return true, true",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+			},
+			wantCollectData:   true,
+			wantRecordContent: true,
+		},
+		{
+			name: "ai_monitoring.enabled is true locally, basic_telemetry.enabled is false, and record_content.enabled is unset. basic_telemetry is ignored. Should return true, true",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.BasicTelemetry.Enabled = false
+			},
+			wantCollectData:   true,
+			wantRecordContent: true,
+		},
+		{
+			name: "ai_monitoring.enabled is true via SSC and record_content.enabled is unset. Content is not forced. Should return true, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.enabledFromSSC = true
+			},
+			wantCollectData:   true,
+			wantRecordContent: false,
+		},
+		{
+			name: "ai_monitoring.enabled is true via SSC and record_content.enabled is true. Should return true, true",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.enabledFromSSC = true
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   true,
+			wantRecordContent: true,
+		},
+		{
+			name: "ai_monitoring.enabled is true and record_content.enabled is true. Should return true, true",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.RecordContent.Enabled = &enabledTrue
+			},
+			wantCollectData:   true,
+			wantRecordContent: true,
+		},
+		{
+			name: "ai_monitoring.enabled is true and record_content.enabled is false. Should return true, false",
+			cfgOptions: func(c *Config) {
+				c.AIMonitoring.Enabled = &enabledTrue
+				c.AIMonitoring.RecordContent.Enabled = &enabledFalse
+			},
+			wantCollectData:   true,
+			wantRecordContent: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := defaultConfig()
+			tt.cfgOptions(&c)
+			gotCollectData, gotRecordContent := c.AIMDataCollection()
+			if tt.wantCollectData != gotCollectData {
+				t.Errorf("AIMDataCollection() = %v, want %v", gotCollectData, tt.wantCollectData)
+			}
+			if tt.wantRecordContent != gotRecordContent {
+				t.Errorf("AIMDataCollection() = %v, want %v", gotRecordContent, tt.wantRecordContent)
 			}
 		})
 	}

@@ -176,7 +176,7 @@ func TestNRCreateChatCompletion(t *testing.T) {
 			},
 		},
 	}
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	resp, err := NRCreateChatCompletion(cw, req, app.Application)
 	if err != nil {
 		t.Error(err)
@@ -276,7 +276,7 @@ func TestNRCreateChatCompletionAIMonitoringNotEnabled(t *testing.T) {
 			},
 		},
 	}
-	app := integrationsupport.NewTestApp(nil)
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false))
 	resp, err := NRCreateChatCompletion(cw, req, app.Application)
 	if err != errAIMonitoringDisabled {
 		t.Error(err)
@@ -305,7 +305,7 @@ func TestNRCreateChatCompletionError(t *testing.T) {
 			},
 		},
 	}
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	_, err := NRCreateChatCompletion(cw, req, app.Application)
 	if err != nil {
 		t.Error(err)
@@ -393,7 +393,7 @@ func TestNRCreateEmbedding(t *testing.T) {
 		EncodingFormat: openai.EmbeddingEncodingFormatFloat,
 	}
 
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 
 	_, err := NRCreateEmbedding(cw, embeddingReq, app.Application)
 	if err != nil {
@@ -444,7 +444,7 @@ func TestNRCreateEmbeddingAIMonitoringNotEnabled(t *testing.T) {
 		EncodingFormat: openai.EmbeddingEncodingFormatFloat,
 	}
 
-	app := integrationsupport.NewTestApp(nil)
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false))
 
 	resp, err := NRCreateEmbedding(cw, embeddingReq, app.Application)
 	if err != errAIMonitoringDisabled {
@@ -468,7 +468,7 @@ func TestNRCreateEmbeddingError(t *testing.T) {
 		EncodingFormat: openai.EmbeddingEncodingFormatFloat,
 	}
 
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 
 	_, err := NRCreateEmbedding(cw, embeddingReq, app.Application)
 	if err != nil {
@@ -530,7 +530,7 @@ func TestNRCreateChatCompletionMessageStream(t *testing.T) {
 		Client: mockClient,
 	}
 
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	txn := app.StartTransaction("NRCreateChatCompletionMessageStream")
 	uuid := uuid.New()
 	mockStreamWrapper.txn = txn
@@ -586,7 +586,7 @@ func TestNRCreateStream(t *testing.T) {
 		},
 		Stream: true,
 	}
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringRecordContentEnabled(true))
 	_, err := NRCreateChatCompletionStream(cw, context.Background(), req, app.Application)
 	if err != nil {
 		t.Error(err)
@@ -631,7 +631,7 @@ func TestNRCreateStreamAIMonitoringNotEnabled(t *testing.T) {
 		},
 		Stream: true,
 	}
-	app := integrationsupport.NewTestApp(nil)
+	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringBasicTelemetryEnabled(false))
 	_, err := NRCreateChatCompletionStream(cw, context.Background(), req, app.Application)
 	if err != errAIMonitoringDisabled {
 		t.Error(err)
@@ -658,7 +658,7 @@ func TestNRCreateStreamError(t *testing.T) {
 		},
 		Stream: true,
 	}
-	app := integrationsupport.NewTestApp(nil, newrelic.ConfigAIMonitoringEnabled(true))
+	app := integrationsupport.NewTestApp(nil)
 	_, err := NRCreateChatCompletionStream(cw, context.Background(), req, app.Application)
 	if err.Error() != "test error" {
 		t.Error(err)

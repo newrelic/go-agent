@@ -173,7 +173,8 @@ func (c *NRClient) AddCustomAttributes(attrs map[string]interface{}) {
 // one named "GeminiGenerateContent" is started and ended here.
 func (s *NRModelsService) GenerateContent(ctx context.Context, model string, contents []*genai.Content, config *genai.GenerateContentConfig) (*genai.GenerateContentResponse, error) {
 	cfg, _ := s.app.Config()
-	if !cfg.AIMonitoring.Enabled {
+	collectData, recordContent := cfg.AIMDataCollection()
+	if !collectData {
 		return s.models.GenerateContent(ctx, model, contents, config)
 	}
 
@@ -207,7 +208,7 @@ func (s *NRModelsService) GenerateContent(ctx context.Context, model string, con
 		noticeError(txn, c.id, err)
 	}
 
-	s.recordCompletion(c)
+	s.recordCompletion(c, recordContent)
 	return resp, err
 }
 
@@ -267,9 +268,9 @@ func (c *completion) messageID(sequence int) string {
 }
 
 // recordCompletion records the summary plus one message per request and response.
-func (s *NRModelsService) recordCompletion(c *completion) {
+func (s *NRModelsService) recordCompletion(c *completion, recordContent bool) {
 	s.recordSummary(c)
-	s.recordMessages(c)
+	s.recordMessages(c, recordContent)
 }
 
 func (s *NRModelsService) recordSummary(c *completion) {
@@ -333,9 +334,8 @@ func (s *NRModelsService) recordSummary(c *completion) {
 	s.app.RecordCustomEvent("LlmChatCompletionSummary", data)
 }
 
-func (s *NRModelsService) recordMessages(c *completion) {
+func (s *NRModelsService) recordMessages(c *completion, recordContent bool) {
 	cfg, _ := s.app.Config()
-	recordContent := cfg.AIMonitoring.RecordContent.Enabled
 	responseModel := c.responseModel()
 	requestID := c.requestID()
 
@@ -452,13 +452,13 @@ func candidateText(c *genai.Candidate) (string, int) {
 // monitoring or streaming disabled, the SDK iterator is returned untouched.
 func (s *NRModelsService) GenerateContentStream(ctx context.Context, model string, contents []*genai.Content, config *genai.GenerateContentConfig) iter.Seq2[*genai.GenerateContentResponse, error] {
 	cfg, _ := s.app.Config()
-
 	if !cfg.AIMonitoring.Streaming.Enabled {
 		if reportStreamingDisabled != nil {
 			reportStreamingDisabled()
 		}
 	}
-	if !cfg.AIMonitoring.Enabled || !cfg.AIMonitoring.Streaming.Enabled {
+	collectData, recordContent := cfg.AIMDataCollection()
+	if !collectData || !cfg.AIMonitoring.Streaming.Enabled {
 		return s.models.GenerateContentStream(ctx, model, contents, config)
 	}
 
@@ -498,7 +498,7 @@ func (s *NRModelsService) GenerateContentStream(ctx context.Context, model strin
 
 		defer func() {
 			seg.End()
-			s.recordCompletion(st.finish())
+			s.recordCompletion(st.finish(), recordContent)
 			if closeTxn {
 				txn.End()
 			}

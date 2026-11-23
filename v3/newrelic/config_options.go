@@ -365,10 +365,18 @@ func ConfigAppLogDecoratingWithinMessage(withinMessage bool) ConfigOption {
 	}
 }
 
+// DEPRECATED 09/2026 in favor of ConfigAIMonitoringBasicTelemetryEnabled
 // ConfigAIMonitoringEnabled enables or disables the collection of AI Monitoring event data.
 func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.AIMonitoring.Enabled = enabled
+		cfg.AIMonitoring.Enabled = &enabled
+	}
+}
+
+// ConfigAIMonitoringBasicTelemetryEnabled enables or disables the collection of AI Monitoring event data.
+func ConfigAIMonitoringBasicTelemetryEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.AIMonitoring.BasicTelemetry.Enabled = enabled
 	}
 }
 
@@ -376,7 +384,7 @@ func ConfigAIMonitoringEnabled(enabled bool) ConfigOption {
 // response data along with other AI event metadata.
 func ConfigAIMonitoringRecordContentEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
-		cfg.AIMonitoring.RecordContent.Enabled = enabled
+		cfg.AIMonitoring.RecordContent.Enabled = &enabled
 	}
 }
 
@@ -679,6 +687,18 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 			}
 		}
 
+		// assignUnsetBool sets *field only when the env var is present and valid,
+		// leaving it nil (unset) otherwise.
+		assignUnsetBool := func(field **bool, name string) {
+			if env := getenv(name); env != "" {
+				if b, err := strconv.ParseBool(env); nil != err {
+					cfg.Error = fmt.Errorf("invalid %s value: %s", name, env)
+				} else {
+					*field = &b
+				}
+			}
+		}
+
 		assignIntOk := func(field *int, name string, fn func(configured int) int) bool {
 			if env := getenv(name); env != "" {
 				if i, err := strconv.Atoi(env); err != nil {
@@ -739,9 +759,10 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.ApplicationLogging.Forwarding.MaxSamplesStored, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_MAX_SAMPLES_STORED", maxLogEvents)
 		assignBool(&cfg.ApplicationLogging.Metrics.Enabled, "NEW_RELIC_APPLICATION_LOGGING_METRICS_ENABLED")
 		assignBool(&cfg.ApplicationLogging.LocalDecorating.Enabled, "NEW_RELIC_APPLICATION_LOGGING_LOCAL_DECORATING_ENABLED")
-		assignBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED")
+		assignUnsetBool(&cfg.AIMonitoring.Enabled, "NEW_RELIC_AI_MONITORING_ENABLED") // DEPRECATED 09/2026 in favor of NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED
+		assignBool(&cfg.AIMonitoring.BasicTelemetry.Enabled, "NEW_RELIC_AI_MONITORING_BASIC_TELEMETRY_ENABLED")
 		assignBool(&cfg.AIMonitoring.Streaming.Enabled, "NEW_RELIC_AI_MONITORING_STREAMING_ENABLED")
-		assignBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
+		assignUnsetBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
 		// Transaction Event Env Variables
