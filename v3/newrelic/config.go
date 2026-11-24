@@ -785,11 +785,11 @@ type Config struct {
 			// Include is a comma-delimited list of OTel Tracers represented as a string.
 			// For instance: "TracerName1,TracerName2". These tracers will have their traces
 			// sent to New Relic.
-			Include string
+			Include []string
 			// Exclude is a comma-delimited list of OTel Tracers represented as a string.
 			// For instance: "TracerName1,TracerName2". These tracers will have their traces
 			// excluded from being sent to New Relic.
-			Exclude string
+			Exclude []string
 		}
 	}
 }

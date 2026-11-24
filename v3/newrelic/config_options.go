@@ -834,6 +834,12 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignUnsetBool(&cfg.AIMonitoring.RecordContent.Enabled, "NEW_RELIC_AI_MONITORING_RECORD_CONTENT_ENABLED")
 		assignBool(&cfg.CustomInsightsEvents.CustomAttributesEnabled, "NEW_RELIC_APPLICATION_LOGGING_FORWARDING_CUSTOM_ATTRIBUTES_ENABLED")
 
+		// OTel Env Variables
+		assignBool(&cfg.OpenTelemetry.Enabled, "NEW_RELIC_OPENTELEMETRY_ENABLED")
+		assignBool(&cfg.OpenTelemetry.Traces.Enabled, "NEW_RELIC_OPENTELEMETRY_TRACES_ENABLED")
+		assignStringSlice(&cfg.OpenTelemetry.Traces.Include, "NEW_RELIC_OPENTELEMETRY_TRACES_INCLUDE", ",") // slice since it is comma delimited?
+		assignStringSlice(&cfg.OpenTelemetry.Traces.Exclude, "NEW_RELIC_OPENTELEMETRY_TRACES_EXCLUDE", ",") // slice since it is comma delimited?
+
 		// Transaction Event Env Variables
 		assignInt(&cfg.TransactionEvents.MaxSamplesStored, "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED", maxTxnEvents)
 
@@ -946,10 +952,7 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		assignInt(&cfg.Profiling.CPUSampleRateHz, "NEW_RELIC_PROFILING_CPU_SAMPLE_RATE", nil)
 		assignInt(&cfg.Profiling.BlockRate, "NEW_RELIC_PROFILING_BLOCK_RATE", nil)
 		assignInt(&cfg.Profiling.MutexRate, "NEW_RELIC_PROFILING_MUTEX_RATE", nil)
-		//     NEW_RELIC_OPEN_TELEMETRY_ENABLED		sets OpenTelemetry.Enabled
-		//     NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
-		//	   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
-		//	   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
+		//     NEW_RELIC_OPENTELEMETRY_ENABLED		sets OpenTelemetry.Enabled
 		//	   OTEL_SERVICE_NAME	if OpenTelemetry.Enabled and ServiceNameOverride, sets AppName
 		//	   OTEL_LOG_LEVEL		if OpenTelemetry.Enabled
 		//     OTEL_SDK_DISABLED	if OpenTelemetry.Enabled and OpenTelemetry.AllowSDKDisable, clears OpenTelemetry.Enabled
