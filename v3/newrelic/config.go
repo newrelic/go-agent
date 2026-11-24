@@ -1043,6 +1043,11 @@ func defaultConfig() Config {
 	c.InfiniteTracing.TraceObserver.Port = 443
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
+	c.OpenTelemetry.Enabled = false
+	c.OpenTelemetry.Traces.Enabled = false
+	c.OpenTelemetry.Traces.Include = []string{}
+	c.OpenTelemetry.Traces.Exclude = []string{}
+
 	// Code Level Metrics
 	c.CodeLevelMetrics.Enabled = true
 	c.CodeLevelMetrics.RedactPathPrefixes = true

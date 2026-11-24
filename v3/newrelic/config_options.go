@@ -760,7 +760,10 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 //				          NEW_RELIC_PROFILING_CPU_BLOCK_RATE						 sets Profiling.BlockRate
 //				          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
 //					         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
-//	    NEW_RELIC_OPEN_TELEMETRY_ENABLED		sets OpenTelemetry.Enabled
+//	    NEW_RELIC_OPENTELEMETRY_ENABLED		sets OpenTelemetry.Enabled
+//		NEWRELIC_OPENTELEMETRY_TRACES_ENABLED sets OpenTelemetry.Traces.Enabled
+//		NEWRELIC_OPENTELEMETRY_TRACES_INCLUDE sets OpenTelemetry.Traces.Include
+//		NEWRELIC_OPENTELEMETRY_TRACES_EXCLUDE sets OpenTelemetry.Traces.Exclude
 //	    NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
 //		   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
 //		   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
