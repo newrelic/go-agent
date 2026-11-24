@@ -347,11 +347,45 @@ func ConfigAppLogDecoratingEnabled(enabled bool) ConfigOption {
 }
 
 // ConfigOpenTelemetryEnabled enables the Open Telemetry integration package and
-// associated configuration, including the OTEL_* environment variables (if, and only if,
+// associated configuration, including the OpenTelemetry_* environment variables (if, and only if,
 // ConfigFromEnvironment() is also called).
 func ConfigOpenTelemetryEnabled(enabled bool) ConfigOption {
 	return func(cfg *Config) {
 		cfg.OpenTelemetry.Enabled = enabled
+	}
+}
+
+// ConfigOpenTelemetryTracesEnabled enables the Open Telemetry Tracing API to
+// send traces to New Relic.
+func ConfigOpenTelemetryTracesEnabled(enabled bool) ConfigOption {
+	return func(cfg *Config) {
+		cfg.OpenTelemetry.Traces.Enabled = enabled
+	}
+}
+
+// ConfigOpenTelemetryTracesInclude sets a list of Tracers that will have their
+// traces sent to New Relic.  These should be represented a comma delimited string.
+// For instance: ConfigOpenTelemetryInclude("Tracer1, Tracer2")
+func ConfigOpenTelemetryTracesInclude(include string) ConfigOption {
+	return func(cfg *Config) {
+		var includeSlice []string
+		for part := range strings.SplitSeq(include, ",") {
+			includeSlice = append(includeSlice, strings.TrimSpace(part))
+		}
+		cfg.OpenTelemetry.Traces.Include = includeSlice
+	}
+}
+
+// ConfigOpenTelemetryTracesExclude sets a list of Tracers that will have their
+// traces excluded from being sent to New Relic.  These should be represented a comma
+// delimited string. For instance: ConfigOpenTelemetryTracesExclude("Tracer1, Tracer2")
+func ConfigOpenTelemetryTracesExclude(exclude string) ConfigOption {
+	return func(cfg *Config) {
+		var excludeSlice []string
+		for part := range strings.SplitSeq(exclude, ",") {
+			excludeSlice = append(excludeSlice, strings.TrimSpace(part))
+		}
+		cfg.OpenTelemetry.Traces.Exclude = excludeSlice
 	}
 }
 
