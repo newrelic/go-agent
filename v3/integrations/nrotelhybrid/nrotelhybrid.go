@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"sync"
 	"time"
 
@@ -18,6 +19,13 @@ import (
 )
 
 const spanEventEventsDroppedMetricName = "Supportability/Go/SpanEvent/Events/Dropped"
+
+// defaultExcludedTracers lists OTel Tracer (instrumentation scope) names that are
+// excluded by default.  The Go agent has no auto-instrumentation, so nothing
+// conflicts by default and every Tracer is captured.  Users can exclude tracers
+// with OpenTelemetry.Traces.Exclude.  Entries here can be overridden by
+// OpenTelemetry.Traces.Include.
+var defaultExcludedTracers = []string{}
 
 // w3cVersion is the version of the W3C trace context traceparent header format
 // that this package emits.
@@ -46,6 +54,8 @@ type hybridTracerProvider struct {
 	embedded.TracerProvider
 	provider *trace.TracerProvider
 	app      *newrelic.Application
+	include  []string
+	exclude  []string
 }
 
 type hybridSegment struct {
@@ -125,16 +135,31 @@ func NewTracerProvider(app *newrelic.Application, opts ...trace.TracerProviderOp
 	return &hybridTracerProvider{
 		app:      app,
 		provider: trace.NewTracerProvider(opts...),
+		include:  cfg.OpenTelemetry.Traces.Include,
+		exclude:  cfg.OpenTelemetry.Traces.Exclude,
 	}
 }
 
 // Returns this package's implementation of oteltrace.Tracer.  The inner tracer comes from the
 // wrapped SDK provider, so setting this provider as the global one does not recurse.
 func (h *hybridTracerProvider) Tracer(name string, opts ...oteltrace.TracerOption) oteltrace.Tracer {
+	if h.isExcluded(name) {
+		return noop.NewTracerProvider().Tracer(name, opts...)
+	}
 	return &hybridTracer{
 		tracer: h.provider.Tracer(name, opts...),
 		app:    h.app,
 	}
+}
+
+func (h *hybridTracerProvider) isExcluded(name string) bool {
+	if slices.Contains(h.exclude, name) {
+		return true
+	}
+	if slices.Contains(h.include, name) {
+		return false
+	}
+	return slices.Contains(defaultExcludedTracers, name)
 }
 
 func (h *hybridTracerProvider) Shutdown(ctx context.Context) error {
