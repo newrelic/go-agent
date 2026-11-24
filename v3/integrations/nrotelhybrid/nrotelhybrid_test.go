@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/newrelic/go-agent/v3/internal"
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -1019,6 +1021,47 @@ func Test_hybridTracerProvider_isExcluded(t *testing.T) {
 			got := h.isExcluded(tt.nameParam)
 			if tt.want != got {
 				t.Errorf("isExcluded() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNewTracerProvider(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		app *newrelic.Application
+		// true represents hybridTracerProvider and false
+		// represents otel TracerProvider
+		want bool
+	}{
+		{
+			name: "Config not yet initialized.  Should return OTel TracerProvider.",
+			app:  &newrelic.Application{},
+			want: false,
+		},
+		{
+			name: "Default Config should return OTel TracerProvider.",
+			app:  integrationsupport.NewTestApp(func(cr *internal.ConnectReply) {}).Application,
+			want: false,
+		},
+		{
+			name: "Config with option OTel enabled. Should return hybridTracerProvider",
+			app:  integrationsupport.NewTestApp(func(cr *internal.ConnectReply) {}, newrelic.ConfigOpenTelemetryEnabled(true)).Application,
+			want: true,
+		},
+		{
+			name: "Config with option OTel enabled and OTel traces disabled. should return OTel TracerProvider.",
+			app:  integrationsupport.NewTestApp(func(cr *internal.ConnectReply) {}, newrelic.ConfigOpenTelemetryEnabled(true), newrelic.ConfigOpenTelemetryTracesEnabled(false)).Application,
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewTracerProvider(tt.app)
+			_, isHybrid := got.(*hybridTracerProvider)
+			if isHybrid != tt.want {
+				t.Errorf("NewTracerProvider() returned %T, want hybridTracerProvider = %v", got, tt.want)
 			}
 		})
 	}

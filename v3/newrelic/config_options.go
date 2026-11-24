@@ -761,9 +761,9 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 //				          NEW_RELIC_PROFILING_CPU_MUTEX_RATE						 sets Profiling.MutexRate
 //					         NEW_RELIC_PROFILING_INCLUDE="heap,cpu,..."                  sets Profiling.SelectedProfiles
 //	    NEW_RELIC_OPENTELEMETRY_ENABLED		sets OpenTelemetry.Enabled
-//		NEWRELIC_OPENTELEMETRY_TRACES_ENABLED sets OpenTelemetry.Traces.Enabled
-//		NEWRELIC_OPENTELEMETRY_TRACES_INCLUDE sets OpenTelemetry.Traces.Include
-//		NEWRELIC_OPENTELEMETRY_TRACES_EXCLUDE sets OpenTelemetry.Traces.Exclude
+//		NEW_RELIC_OPENTELEMETRY_TRACES_ENABLED sets OpenTelemetry.Traces.Enabled
+//		NEW_RELIC_OPENTELEMETRY_TRACES_INCLUDE sets OpenTelemetry.Traces.Include
+//		NEW_RELIC_OPENTELEMETRY_TRACES_EXCLUDE sets OpenTelemetry.Traces.Exclude
 //	    NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
 //		   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
 //		   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
@@ -874,8 +874,8 @@ func configFromEnvironment(getenv func(string) string) ConfigOption {
 		// OTel Env Variables
 		assignBool(&cfg.OpenTelemetry.Enabled, "NEW_RELIC_OPENTELEMETRY_ENABLED")
 		assignBool(&cfg.OpenTelemetry.Traces.Enabled, "NEW_RELIC_OPENTELEMETRY_TRACES_ENABLED")
-		assignStringSlice(&cfg.OpenTelemetry.Traces.Include, "NEW_RELIC_OPENTELEMETRY_TRACES_INCLUDE", ",") // slice since it is comma delimited?
-		assignStringSlice(&cfg.OpenTelemetry.Traces.Exclude, "NEW_RELIC_OPENTELEMETRY_TRACES_EXCLUDE", ",") // slice since it is comma delimited?
+		assignStringSlice(&cfg.OpenTelemetry.Traces.Include, "NEW_RELIC_OPENTELEMETRY_TRACES_INCLUDE", ",")
+		assignStringSlice(&cfg.OpenTelemetry.Traces.Exclude, "NEW_RELIC_OPENTELEMETRY_TRACES_EXCLUDE", ",")
 
 		// Transaction Event Env Variables
 		assignInt(&cfg.TransactionEvents.MaxSamplesStored, "NEW_RELIC_TRANSACTION_EVENTS_MAX_SAMPLES_STORED", maxTxnEvents)
