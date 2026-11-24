@@ -13,7 +13,7 @@ require (
 	github.com/adhocore/gronx v1.19.1 // indirect
 	github.com/dlclark/regexp2 v1.9.0 // indirect
 	github.com/google/pprof v0.0.0-20260802141513-ef3492d7dac3 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/k2io/hookingo v1.0.6 // indirect
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	golang.org/x/arch v0.4.0 // indirect
