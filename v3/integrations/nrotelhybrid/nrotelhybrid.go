@@ -110,6 +110,16 @@ type TracerProvider interface {
 func NewTracerProvider(app *newrelic.Application, opts ...trace.TracerProviderOption) TracerProvider {
 	// Make segments started with Transaction.StartSegmentCtx visible to the
 	// OTel API as the current span.
+	cfg, ok := app.Config()
+	if !ok {
+		return trace.NewTracerProvider(opts...)
+	}
+
+	if !cfg.OpenTelemetry.Enabled || !cfg.OpenTelemetry.Traces.Enabled {
+		// don't send traces to new relic
+		return trace.NewTracerProvider(opts...)
+	}
+
 	app.SetSegmentContextHook(nrSpanContextHook)
 	app.SetTransactionContextHook(nrSpanContextHook)
 	return &hybridTracerProvider{
