@@ -4,6 +4,8 @@
 package newrelic
 
 import (
+	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/newrelic/go-agent/v3/internal"
@@ -78,9 +80,106 @@ const (
 	txnEventPayloadlimit = 5000
 )
 
+var (
+	harvestMemoryHighWaterLimit     uint64
+	harvestEmergencyDumpCallback    func(*runtime.MemStats, uint64) bool
+	harvestEmergencyDumpLastAttempt time.Time
+)
+
+// HarvestDataMemoryHighWaterMark sets a limit on the amount of total heap space we ever
+// want the application to obtain from the operating system. THIS SHOULD NOT NORMALLY BE
+// NEEDED under most conditions. However, if you are running under a very constrained set of
+// circumstances where you have a hard runtime limit on how much RAM can be allocated to your
+// process, AND you have had issues where the agent's collecting a large amount of data that
+// sometimes takes long enough to get processed and delivered that this pushes the application
+// over the line where it is no longer viable due to memory constraints, AND you are willing
+// to sacrifice the collected data in order to keep the program's memory size lower, THEN
+// you can consider this as a last resort method to prevent a worse outcome than losing some
+// telemetry data.
+//
+// Even with this feature engaged, you still have final control over whether the data is
+// jettisoned in any event.
+//
+// To set this limit, determine the maximum amount of total heap memory you are able to allow your
+// application to occupy in RAM before such measures should be taken. Let's call this value
+// MaxAllowed, as an unsigned 64-bit integer value in bytes. If you make the API call
+//
+//	newrelic.HarvestDataMemoryHighWaterMark(MaxAllowed, nil)
+//
+// then any time the application's total heap exceeds MaxAllowed, it will dump the accumulated
+// harvest data immediately as an emergency measure to free up memory, and will initiate
+// a garbage collection and ask for memory to be returned to the operating system.  (Note that
+// this still depends on the Go garbage collector to actually agree to do that, so the effects
+// may not be immediate. Since the step of running the garbage collection is time consuming,
+// it won't be performed more than once every 30 seconds.)
+//
+// If you want to exert your own discretionary control as to when (or whether) to lose data, supply
+// a callback function as the second parameter to the HarvestDataMemoryHighWaterMark call. This
+// function takes a pointer to the runtime.MemStats structure obtained from the system, which gives
+// much deeper insight into where the memory is allocated at the moment, as well as a copy of
+// your maximum limit that you set when you called HarvestDataMemoryHighWaterMark originally. If
+// your callback function returns true, then the harvest data is deleted; if it returns false, it
+// is not.
+//
+// We strongly recommend defining a callback function that, at a minimum, logs the fact that the
+// emergency data deletion action was taken, so you know what happened to your telemetry data.
+//
+// Calling HarvestDataMemoryHighWaterMark again changes the high water mark and/or the callback
+// function.
+//
+// Setting the callback to nil disables the callback function, making the data deletion unconditional,
+// while setting the high water mark to 0 disables this feature entirely.
+func HarvestDataMemoryHighWaterMark(highWaterMark uint64, callback func(memoryStats *runtime.MemStats, highWaterMark uint64) bool) {
+	harvestMemoryHighWaterLimit = highWaterMark
+	harvestEmergencyDumpCallback = callback
+}
+
+// emergencyDumpCollectedHarvestData takes the rather drastic step of dropping
+// our collected data immediately in the event that the application developer has
+// set a hard memory limit that the application's memory size has exceeded. To avoid
+// a more catastrophic problem like the program being killed entirely, we'll sacrifice
+// some data in an effort to stay alive. We do this because there are some situations
+// where we could have collected a lot of data and possibly have not been able to
+// succesfully delivered it to New Relic yet, so the agent has continued to hold on
+// to it. If that's no longer an option, we'll resort to this.
+func emergencyDumpCollectedHarvestData(h *harvest, now time.Time) {
+	if h.CustomEvents != nil {
+		h.CustomEvents = newCustomEvents(h.CustomEvents.capacity())
+	}
+	if h.LogEvents != nil {
+		h.LogEvents = newLogEvents(h.LogEvents.commonAttributes, h.LogEvents.config)
+	}
+	if h.TxnEvents != nil {
+		h.TxnEvents = newTxnEvents(h.TxnEvents.capacity())
+	}
+	if h.ErrorEvents != nil {
+		h.ErrorEvents = newErrorEvents(h.ErrorEvents.capacity())
+	}
+	if h.SpanEvents != nil {
+		h.SpanEvents = newSpanEvents(h.SpanEvents.capacity())
+	}
+	h.Metrics = newMetricTable(maxMetrics, now)
+	h.ErrorTraces = newHarvestErrors(maxHarvestErrors)
+	h.SlowSQLs = newSlowQueries(maxHarvestSlowSQLs)
+	h.TxnTraces = newHarvestTraces()
+}
+
 // Ready returns a new harvest which contains the data types ready for harvest,
 // or nil if no data is ready for harvest.
 func (h *harvest) Ready(now time.Time) *harvest {
+	if harvestMemoryHighWaterLimit > 0 {
+		var m runtime.MemStats
+		if runtime.ReadMemStats(&m); m.HeapAlloc > harvestMemoryHighWaterLimit {
+			if harvestEmergencyDumpCallback == nil || harvestEmergencyDumpCallback(&m, harvestMemoryHighWaterLimit) {
+				emergencyDumpCollectedHarvestData(h, now)
+				if time.Now().Sub(harvestEmergencyDumpLastAttempt) > 30*time.Second {
+					debug.FreeOSMemory()
+					harvestEmergencyDumpLastAttempt = time.Now()
+				}
+			}
+		}
+	}
+
 	ready := &harvest{}
 
 	types := h.timer.ready(now)
