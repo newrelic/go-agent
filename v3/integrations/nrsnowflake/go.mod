@@ -30,7 +30,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
-	github.com/dvsekhvalnov/jose2go v1.6.0 // indirect
+	github.com/dvsekhvalnov/jose2go v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
