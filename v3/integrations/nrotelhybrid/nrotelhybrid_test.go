@@ -865,7 +865,6 @@ func Test_otelEventAttributes_WriteAttributes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: construct the receiver type.
 			m := make(map[string]any)
 			write := func(key string, val any) {
 				m[key] = val
@@ -875,6 +874,151 @@ func Test_otelEventAttributes_WriteAttributes(t *testing.T) {
 			a.WriteAttributes(write)
 			if tt.expectedAttrLength != len(m) {
 				t.Errorf("Expected attribute map of length %d, got attribute of length of length %d", tt.expectedAttrLength, len(m))
+			}
+		})
+	}
+}
+
+// OTel default is currently empty
+func Test_hybridTracerProvider_isExcluded(t *testing.T) {
+	tests := []struct {
+		name string // description of this test case
+		// Named input parameters for target function.
+		nameParam string
+		include   []string
+		exclude   []string
+		want      bool
+	}{
+		{
+			name:      "All empty lists. Should return false.",
+			nameParam: "tracer1",
+			want:      false,
+		},
+		{
+			name:      "Exclude contains match. Should return true.",
+			nameParam: "tracer1",
+			exclude:   []string{"tracer1", "tracer2"},
+			want:      true,
+		},
+		{
+			name:      "Exclude contains match. Include contains no match. Should return true.",
+			nameParam: "tracer1",
+			exclude:   []string{"tracer1", "tracer2"},
+			include:   []string{"tracer3", "tracer4"},
+			want:      true,
+		},
+		{
+			name:      "Exclude contains match. Include contains match. Should return true.",
+			nameParam: "tracer2",
+			exclude:   []string{"tracer1", "tracer2"},
+			include:   []string{"tracer3", "tracer4", "tracer2"},
+			want:      true,
+		},
+		{
+			name:      "Exclude contains no match. Include contains no match. Should return false.",
+			nameParam: "tracer5",
+			exclude:   []string{"tracer1", "tracer2"},
+			include:   []string{"tracer3", "tracer4", "tracer2"},
+			want:      false,
+		},
+		{
+			name:      "Exclude contains no match. Include contains match. Should return false.",
+			nameParam: "tracer3",
+			exclude:   []string{"tracer1", "tracer2"},
+			include:   []string{"tracer3", "tracer4", "tracer2"},
+			want:      false,
+		},
+		{
+			name:      "Exclude contains no match. Include contains match. No union between exclude and include. Should return false.",
+			nameParam: "tracer3",
+			exclude:   []string{"tracer1", "tracer2"},
+			include:   []string{"tracer3", "tracer4"},
+			want:      false,
+		},
+		{
+			name:      "Exclude empty. Include contains match. Should return false.",
+			nameParam: "tracer4",
+			include:   []string{"tracer3", "tracer4", "tracer2"},
+			want:      false,
+		},
+		{
+			name:      "Exclude exact whole name match. Should return true.",
+			nameParam: "Foo.Bar",
+			exclude:   []string{"Foo.Bar"},
+			want:      true,
+		},
+		{
+			name:      "Exclude is a prefix of name. Should return false.",
+			nameParam: "Foo.Bar.Something",
+			exclude:   []string{"Foo.Bar"},
+			want:      false,
+		},
+		{
+			name:      "Name is a prefix of exclude. Should return false.",
+			nameParam: "Foo",
+			exclude:   []string{"Foo.Bar"},
+			want:      false,
+		},
+		{
+			name:      "Exclude differs by space. Should return false.",
+			nameParam: "Foo Bar",
+			exclude:   []string{"Foo.Bar"},
+			want:      false,
+		},
+		{
+			name:      "Exclude differs by colon. Should return false.",
+			nameParam: "Foo:Bar",
+			exclude:   []string{"Foo.Bar"},
+			want:      false,
+		},
+		{
+			name:      "Exclude differs by case. Should return false.",
+			nameParam: "foo.bar",
+			exclude:   []string{"Foo.Bar"},
+			want:      false,
+		},
+		{
+			name:      "Exclude contains wildcard. Wildcards are not supported. Should return false.",
+			nameParam: "Foo.Bar",
+			exclude:   []string{"Foo.*"},
+			want:      false,
+		},
+		// Empty name
+		{
+			name:      "Empty name. All empty lists. Should return false.",
+			nameParam: "",
+			want:      false,
+		},
+		{
+			name:      "Empty name. Exclude contains empty string. Should return true.",
+			nameParam: "",
+			exclude:   []string{""},
+			want:      true,
+		},
+		{
+			name:      "Empty name. Exclude contains other names only. Should return false.",
+			nameParam: "",
+			exclude:   []string{"tracer1"},
+			want:      false,
+		},
+		// Non-nil empty slices
+		{
+			name:      "Non-nil empty include and exclude. Should return false.",
+			nameParam: "tracer1",
+			include:   []string{},
+			exclude:   []string{},
+			want:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &hybridTracerProvider{
+				include: tt.include,
+				exclude: tt.exclude,
+			}
+			got := h.isExcluded(tt.nameParam)
+			if tt.want != got {
+				t.Errorf("isExcluded() = %v, want %v", got, tt.want)
 			}
 		})
 	}

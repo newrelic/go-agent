@@ -1044,7 +1044,7 @@ func defaultConfig() Config {
 	c.InfiniteTracing.SpanEvents.QueueSize = 10000
 
 	c.OpenTelemetry.Enabled = false
-	c.OpenTelemetry.Traces.Enabled = false
+	c.OpenTelemetry.Traces.Enabled = true
 	c.OpenTelemetry.Traces.Include = []string{}
 	c.OpenTelemetry.Traces.Exclude = []string{}
 
