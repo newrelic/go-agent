@@ -226,3 +226,27 @@ func TestInsertSQL(t *testing.T) {
 		tc.test(t)
 	}
 }
+
+func BenchmarkParseQuery(b *testing.B) {
+	queries := map[string]string{
+		"select_simple":             "SELECT * FROM users WHERE id = 42",
+		"select_subquery":           "SELECT * FROM (SELECT * FROM foobar) WHERE x > y",
+		"insert_with_modifiers":     "INSERT LOW_PRIORITY IGNORE INTO employees VALUES (1, 'Alice')",
+		"update_with_modifiers":     "UPDATE LOW_PRIORITY IGNORE users SET active = 1 WHERE id = 1",
+		"delete_simple":             "DELETE FROM sessions WHERE expires_at < NOW()",
+		"with_cte":                  "WITH cte AS (SELECT * FROM users) SELECT * FROM cte",
+		"comments_and_prefix_noise": " ; /*comment*/ -- x\nSELECT * FROM [foo]",
+	}
+
+	b.ReportAllocs()
+	for name, query := range queries {
+		b.Run(name, func(b *testing.B) {
+			var segment newrelic.DatastoreSegment
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				segment = newrelic.DatastoreSegment{}
+				ParseQuery(&segment, query)
+			}
+		})
+	}
+}
