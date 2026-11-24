@@ -92,6 +92,22 @@ func (h *logEventHeap) Add(event *logEvent) {
 }
 
 // Push and Pop are unused: only heap.Init and heap.Fix are used.
+// addWithLimit adds event to the heap and keeps at most limit events. Unlike
+// Add, it does not need capacity for limit events up front: the heap grows as
+// events arrive and is only capped once it reaches limit.
+func (h *logEventHeap) addWithLimit(event *logEvent, limit int) {
+	if len(*h) < limit {
+		*h = append(*h, *event)
+		if len(*h) == limit {
+			// Add uses the capacity as the limit.
+			*h = slices.Clip(*h)
+			heap.Init(*h)
+		}
+		return
+	}
+	h.Add(event)
+}
+
 func (h logEventHeap) Pop() interface{}   { return nil }
 func (h logEventHeap) Push(x interface{}) {}
 
