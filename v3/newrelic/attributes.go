@@ -192,3 +192,8 @@ const (
 	// will be removed in a later release.
 	SpanAttributeAWSRequestID = "aws.requestId"
 )
+
+const (
+	SpanAttributeStatusCode        = "status.code"
+	SpanAttributeStatusDescription = "Status.description"
+)
