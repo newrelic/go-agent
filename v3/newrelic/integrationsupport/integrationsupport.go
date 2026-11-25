@@ -10,6 +10,14 @@ import (
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
 
+// nrSegment is a minimal stand-in for the segment types
+// (Segment, DatastoreSegment, ExternalSegment, MessageProducerSegment).
+// TODO: replace with a real shared segment interface (or concrete type) once
+// the segment hook design is settled.
+type nrSegment interface {
+	End()
+}
+
 // AddAgentAttribute allows instrumentation packages to add agent attributes.
 func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, otherVal interface{}) {
 	if nil == txn {
@@ -18,6 +26,25 @@ func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, o
 	if aa, ok := txn.Private.(internal.AddAgentAttributer); ok {
 		aa.AddAgentAttribute(id, stringVal, otherVal)
 	}
+}
+
+// AddAgentAttributeToSegment adds a span attribute to the span of the given
+// segment, rather than to whatever span is on top of the stack.
+func AddAgentAttributeToSegment(seg nrSegment, key string, val string, otherVal interface{}) {
+	var st newrelic.SegmentStartTime
+	switch s := seg.(type) {
+	case *newrelic.DatastoreSegment:
+		st = s.StartTime
+	case *newrelic.ExternalSegment:
+		st = s.StartTime
+	case *newrelic.MessageProducerSegment:
+		st = s.StartTime
+	case *newrelic.Segment:
+		st = s.StartTime
+	default:
+		return
+	}
+	internal.AddAgentSpanAttributeAt(st.Private, key, val, otherVal, st)
 }
 
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.

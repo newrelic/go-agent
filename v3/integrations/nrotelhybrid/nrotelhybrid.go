@@ -363,6 +363,10 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 				}
 				p.seg.seg.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes))
 			}
+			integrationsupport.AddAgentAttributeToSegment(p.seg.seg, newrelic.SpanAttributeStatusCode, status.Code.String(), nil)
+			if status.Code == codes.Error {
+				integrationsupport.AddAgentAttributeToSegment(p.seg.seg, newrelic.SpanAttributeStatusDescription, status.Description, nil) // same as above
+			}
 			p.seg.seg.End()
 		}
 	})

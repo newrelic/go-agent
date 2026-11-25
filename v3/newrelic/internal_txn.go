@@ -864,8 +864,9 @@ func (thd *thread) startSegmentAt(at time.Time) SegmentStartTime {
 	}
 	txn.Unlock()
 	return SegmentStartTime{
-		start:  s,
-		thread: thd,
+		start:   s,
+		Private: thd,
+		thread:  thd,
 	}
 }
 
@@ -1391,6 +1392,22 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 	txn.Lock()
 	defer txn.Unlock()
 	thd.thread.AddAgentSpanAttribute(key, val)
+}
+
+// AddAgentSpanAttributeAt adds an agent attribute to the span identified by
+// startTime (a SegmentStartTime) instead of the top of the stack.
+func (thd *thread) AddAgentSpanAttributeAt(key string, val string, startTime any) {
+	st, ok := startTime.(SegmentStartTime)
+	if !ok {
+		return
+	}
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return
+	}
+	thd.thread.AddAgentSpanAttributeAt(key, val, st)
 }
 
 func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {

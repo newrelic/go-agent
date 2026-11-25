@@ -33,9 +33,25 @@ type AddAgentSpanAttributer interface {
 	AddAgentSpanAttribute(key string, val string)
 }
 
+// AddAgentSpanAtAttributer should be implemented by the thread held in
+// SegmentStartTime.Private. startTime is a newrelic.SegmentStartTime; it is
+// typed any because this package cannot import newrelic (import cycle).
+type AddAgentSpanAtAttributer interface {
+	AddAgentSpanAttributeAt(key string, val string, otherVal interface{}, startTime any)
+}
+
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
 func AddAgentSpanAttribute(txn interface{}, key string, val string) {
 	if aa, ok := txn.(AddAgentSpanAttributer); ok {
 		aa.AddAgentSpanAttribute(key, val)
 	}
+}
+
+// AddAgentSpanAttributeAt adds a span attribute to the span identified by
+// startTime rather than the top of the stack.
+func AddAgentSpanAttributeAt(seg interface{}, key string, val string, otherVal interface{}, startTime any) {
+	if aa, ok := seg.(AddAgentSpanAtAttributer); ok {
+		aa.AddAgentSpanAttributeAt(key, val, otherVal, startTime)
+	}
+
 }
