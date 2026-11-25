@@ -195,5 +195,5 @@ const (
 
 const (
 	SpanAttributeStatusCode        = "status.code"
-	SpanAttributeStatusDescription = "Status.description"
+	SpanAttributeStatusDescription = "status.description"
 )
