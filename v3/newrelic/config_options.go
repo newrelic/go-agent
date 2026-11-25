@@ -764,9 +764,9 @@ func ConfigCloudAWSAccountDecodingEnabled(enabled bool) ConfigOption {
 //		NEW_RELIC_OPENTELEMETRY_TRACES_ENABLED sets OpenTelemetry.Traces.Enabled
 //		NEW_RELIC_OPENTELEMETRY_TRACES_INCLUDE sets OpenTelemetry.Traces.Include
 //		NEW_RELIC_OPENTELEMETRY_TRACES_EXCLUDE sets OpenTelemetry.Traces.Exclude
-//	    NEW_RELIC_OPEN_TELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
-//		   NEW_RELIC_OPEN_TELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
-//		   NEW_RELIC_OPEN_TELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
+//	    NEW_RELIC_OPENTELEMETRY_ALLOW_SDK_DISABLE	Sets OpenTelemetry.AllowSDKDisable
+//		   NEW_RELIC_OPENTELEMETRY_LOG_LEVEL			Sets OpenTelemetry.LogLevel
+//		   NEW_RELIC_OPENTELEMETRY_SERVICE_NAME_OVERRIDE Sets OpenTelemetry.ServiceNameOverride
 //		   OTEL_SERVICE_NAME	if OpenTelemetry.Enabled and ServiceNameOverride, sets AppName
 //		   OTEL_LOG_LEVEL		if OpenTelemetry.Enabled
 //	    OTEL_SDK_DISABLED	if OpenTelemetry.Enabled and OpenTelemetry.AllowSDKDisable, clears OpenTelemetry.Enabled
