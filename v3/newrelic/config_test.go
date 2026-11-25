@@ -228,7 +228,12 @@ func TestCopyConfigReferenceFieldsPresent(t *testing.T) {
 				"Enabled": false,
 				"LogLevel": "INFO",
 				"ServiceName": "",
-				"ServiceNameOverride": false
+				"ServiceNameOverride": false,
+				"Traces": {
+					"Enabled": true,
+					"Exclude": [],
+					"Include": []
+				}
 			},
 			"Profiling": {
 				"BlockRate": 1,
@@ -482,7 +487,12 @@ func TestCopyConfigReferenceFieldsAbsent(t *testing.T) {
 				"Enabled": false,
 				"LogLevel": "INFO",
 				"ServiceName": "",
-				"ServiceNameOverride": false
+				"ServiceNameOverride": false,
+				"Traces": {
+					"Enabled": true,
+					"Exclude": [],
+					"Include": []
+				}
 			},
 			"Profiling": {
 				"BlockRate": 1,
