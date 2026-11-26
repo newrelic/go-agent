@@ -332,7 +332,7 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 				p.txn.NoticeError(nrErr)
 			}
 			for _, link := range links {
-				p.txn.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), p.StartTime())
+				integrationsupport.AddLinkToTransaction(p.txn, link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), p.StartTime())
 			}
 			for j, event := range events {
 				if j > 99 {

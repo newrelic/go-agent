@@ -1396,7 +1396,7 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 
 // AddAgentSpanAttributeAt adds an agent attribute to the span identified by
 // startTime (a SegmentStartTime) instead of the top of the stack.
-func (thd *thread) AddAgentSpanAttributeAt(key string, val string, startTime any) {
+func (thd *thread) AddAgentSpanAttributeAt(key string, val string, otherVal interface{}, startTime any) {
 	st, ok := startTime.(SegmentStartTime)
 	if !ok {
 		return
@@ -1407,7 +1407,7 @@ func (thd *thread) AddAgentSpanAttributeAt(key string, val string, startTime any
 	if txn.finished {
 		return
 	}
-	thd.thread.AddAgentSpanAttributeAt(key, val, st)
+	thd.thread.AddAgentSpanAttributeAt(key, val, otherVal, st)
 }
 
 func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
@@ -1429,6 +1429,12 @@ func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
 
 	thd.thread.AddUserSpanAttribute(key, val)
 	return nil
+}
+
+// AddLinkToTransaction adds a span link to the transaction. addLink takes the
+// txn lock itself, so it must not be held here.
+func (thd *thread) AddLinkToTransaction(spanID, traceID string, start time.Time) {
+	thd.logAPIError(thd.addLink(spanID, traceID, start), "add link", nil)
 }
 
 var (

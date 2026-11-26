@@ -6,6 +6,8 @@
 package integrationsupport
 
 import (
+	"time"
+
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
@@ -53,6 +55,13 @@ func AddAgentSpanAttribute(txn *newrelic.Transaction, key string, val string) {
 		return
 	}
 	internal.AddAgentSpanAttribute(txn.Private, key, val)
+}
+
+func AddLinkToTransaction(txn *newrelic.Transaction, spanID, traceID string, start time.Time) {
+	if txn == nil {
+		return
+	}
+	internal.AddLinkToTransaction(txn.Private, spanID, traceID, start)
 }
 
 // This code below is used for testing and is based on the similar code in internal_test.go in

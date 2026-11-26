@@ -3,7 +3,10 @@
 
 package internal
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 // This file contains interfaces that are implemented by Transaction and
 // Application but not exposed as public methods so they will only be used in
@@ -37,7 +40,11 @@ type AddAgentSpanAttributer interface {
 // SegmentStartTime.Private. startTime is a newrelic.SegmentStartTime; it is
 // typed any because this package cannot import newrelic (import cycle).
 type AddAgentSpanAtAttributer interface {
-	AddAgentSpanAttributeAt(key string, val string, otherVal interface{}, startTime any)
+	AddAgentSpanAttributeAt(key, val string, otherVal interface{}, startTime any)
+}
+
+type AddLinkToTransactioner interface {
+	AddLinkToTransaction(spanID, traceID string, start time.Time)
 }
 
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
@@ -54,4 +61,10 @@ func AddAgentSpanAttributeAt(seg interface{}, key string, val string, otherVal i
 		aa.AddAgentSpanAttributeAt(key, val, otherVal, startTime)
 	}
 
+}
+
+func AddLinkToTransaction(txn interface{}, spanID, traceID string, start time.Time) {
+	if aa, ok := txn.(AddLinkToTransactioner); ok {
+		aa.AddLinkToTransaction(spanID, traceID, start)
+	}
 }

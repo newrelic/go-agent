@@ -626,13 +626,6 @@ func (txn *Transaction) SetCsecAttributes(key string, value any) {
 
 }
 
-func (txn *Transaction) AddLink(spanID, traceID string, start time.Time) {
-	if nilTransaction(txn) {
-		return
-	}
-	txn.thread.logAPIError(txn.thread.addLink(spanID, traceID, start), "add link", nil)
-}
-
 func (txn *Transaction) AddSpanEventEvent(name string, start time.Time, attrs SpanEventAttributes) {
 	if nilTransaction(txn) {
 		return

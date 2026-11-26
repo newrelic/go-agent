@@ -376,7 +376,7 @@ func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 	}
 }
 
-func (thread *tracingThread) AddAgentSpanAttributeAt(key, val string, startTime SegmentStartTime) {
+func (thread *tracingThread) AddAgentSpanAttributeAt(key, val string, otherVal interface{}, startTime SegmentStartTime) {
 	s := startTime.start
 	if s.Stamp == 0 || s.Depth < 0 || s.Depth >= len(thread.stack) {
 		return
