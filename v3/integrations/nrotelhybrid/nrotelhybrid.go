@@ -339,7 +339,7 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 					continue
 				}
-				p.txn.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes))
+				integrationsupport.AddSpanEventEventToTransaction(p.txn, event.Name, event.Time, otelEventAttributes(event.Attributes))
 			}
 			integrationsupport.AddAgentAttribute(p.txn, newrelic.SpanAttributeStatusCode, status.Code.String(), nil) // what does OTel do here? string or int
 			if status.Code == codes.Error {

@@ -57,6 +57,14 @@ func AddAgentSpanAttribute(txn *newrelic.Transaction, key string, val string) {
 	internal.AddAgentSpanAttribute(txn.Private, key, val)
 }
 
+
+func AddSpanEventEventToTransaction(txn *newrelic.Transaction, name string, start time.Time, attrs newrelic.SpanEventAttributes) {
+	if txn == nil {
+		return
+	}
+	internal.AddSpanEventEventToTransaction(txn.Private, name, start, attrs)
+}
+
 func AddLinkToTransaction(txn *newrelic.Transaction, spanID, traceID string, start time.Time) {
 	if txn == nil {
 		return

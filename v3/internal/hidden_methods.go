@@ -47,6 +47,11 @@ type AddLinkToTransactioner interface {
 	AddLinkToTransaction(spanID, traceID string, start time.Time)
 }
 
+
+type AddSpanEventEventToTransactioner interface {
+	AddSpanEventEventToTransaction(name string, start time.Time, attrs any)
+}
+
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
 func AddAgentSpanAttribute(txn interface{}, key string, val string) {
 	if aa, ok := txn.(AddAgentSpanAttributer); ok {
@@ -61,6 +66,12 @@ func AddAgentSpanAttributeAt(seg interface{}, key string, val string, otherVal i
 		aa.AddAgentSpanAttributeAt(key, val, otherVal, startTime)
 	}
 
+}
+
+func AddSpanEventEventToTransaction(txn interface{}, name string, start time.Time, attrs any) {
+	if aa, ok := txn.(AddSpanEventEventToTransactioner); ok {
+		aa.AddSpanEventEventToTransaction(name, start, attrs)
+	}
 }
 
 func AddLinkToTransaction(txn interface{}, spanID, traceID string, start time.Time) {

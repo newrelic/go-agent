@@ -1431,6 +1431,14 @@ func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
 	return nil
 }
 
+func (thd *thread) AddSpanEventEventToTransaction(name string, start time.Time, attrs any) {
+	a, ok := attrs.(SpanEventAttributes)
+	if !ok && attrs != nil {
+		return
+	}
+	thd.logAPIError(thd.addSpanEventEvent(name, start, a), "add span event", nil)
+}
+
 // AddLinkToTransaction adds a span link to the transaction. addLink takes the
 // txn lock itself, so it must not be held here.
 func (thd *thread) AddLinkToTransaction(spanID, traceID string, start time.Time) {
