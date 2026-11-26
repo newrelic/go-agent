@@ -13,8 +13,9 @@ import (
 // beginning of a segment.  A segment with a zero-valued SegmentStartTime may
 // safely be ended.
 type SegmentStartTime struct {
-	start  segmentStartTime
-	thread *thread
+	Private any // access SegmentStartTime via private methods
+	start   segmentStartTime
+	thread  *thread
 }
 
 // Segment is used to instrument functions, methods, and blocks of code.  The

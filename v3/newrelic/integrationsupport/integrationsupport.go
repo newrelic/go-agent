@@ -6,9 +6,19 @@
 package integrationsupport
 
 import (
+	"time"
+
 	"github.com/newrelic/go-agent/v3/internal"
 	newrelic "github.com/newrelic/go-agent/v3/newrelic"
 )
+
+// nrSegment is a minimal stand-in for the segment types
+// (Segment, DatastoreSegment, ExternalSegment, MessageProducerSegment).
+// TODO: replace with a real shared segment interface (or concrete type) once
+// the segment hook design is settled.
+type nrSegment interface {
+	End()
+}
 
 // AddAgentAttribute allows instrumentation packages to add agent attributes.
 func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, otherVal interface{}) {
@@ -20,12 +30,46 @@ func AddAgentAttribute(txn *newrelic.Transaction, id string, stringVal string, o
 	}
 }
 
+// AddAgentAttributeToSegment adds a span attribute to the span of the given
+// segment, rather than to whatever span is on top of the stack.
+func AddAgentAttributeToSegment(seg nrSegment, key string, val string, otherVal interface{}) {
+	var st newrelic.SegmentStartTime
+	switch s := seg.(type) {
+	case *newrelic.DatastoreSegment:
+		st = s.StartTime
+	case *newrelic.ExternalSegment:
+		st = s.StartTime
+	case *newrelic.MessageProducerSegment:
+		st = s.StartTime
+	case *newrelic.Segment:
+		st = s.StartTime
+	default:
+		return
+	}
+	internal.AddAgentSpanAttributeAt(st.Private, key, val, otherVal, st)
+}
+
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
 func AddAgentSpanAttribute(txn *newrelic.Transaction, key string, val string) {
 	if nil == txn {
 		return
 	}
 	internal.AddAgentSpanAttribute(txn.Private, key, val)
+}
+
+
+func AddSpanEventEventToTransaction(txn *newrelic.Transaction, name string, start time.Time, attrs newrelic.SpanEventAttributes) {
+	if txn == nil {
+		return
+	}
+	internal.AddSpanEventEventToTransaction(txn.Private, name, start, attrs)
+}
+
+func AddLinkToTransaction(txn *newrelic.Transaction, spanID, traceID string, start time.Time) {
+	if txn == nil {
+		return
+	}
+	internal.AddLinkToTransaction(txn.Private, spanID, traceID, start)
 }
 
 // This code below is used for testing and is based on the similar code in internal_test.go in

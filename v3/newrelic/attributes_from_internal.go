@@ -93,6 +93,8 @@ var (
 		SpanAttributeParentAccount:           usualDests,
 		SpanAttributeParentTransportDuration: usualDests,
 		SpanAttributeParentTransportType:     usualDests,
+		SpanAttributeStatusCode:              usualDests,
+		SpanAttributeStatusDescription:       usualDests,
 	}
 )
 

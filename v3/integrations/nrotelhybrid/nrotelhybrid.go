@@ -10,8 +10,10 @@ import (
 	"time"
 
 	"github.com/newrelic/go-agent/v3/newrelic"
+	"github.com/newrelic/go-agent/v3/newrelic/integrationsupport"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/embedded"
@@ -321,6 +323,8 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 		events := p.Events()
 		nrErr, hasErr := exceptionFromSpan(p)
 		p.ReadWriteSpan.End(options...) // end inner OTel span
+		// TODO ADD STATUS AS AGENT ATTRIBUTES.  Do I need to add as fields to segment and transaction?
+		status := p.Status()
 
 		switch {
 		case p.txn != nil:
@@ -328,15 +332,20 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 				p.txn.NoticeError(nrErr)
 			}
 			for _, link := range links {
-				p.txn.AddLink(link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), p.StartTime())
+				integrationsupport.AddLinkToTransaction(p.txn, link.SpanContext.SpanID().String(), link.SpanContext.TraceID().String(), p.StartTime())
 			}
 			for j, event := range events {
 				if j > 99 {
 					p.app.RecordCustomMetric(spanEventEventsDroppedMetricName, 1.0)
 					continue
 				}
-				p.txn.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes))
+				integrationsupport.AddSpanEventEventToTransaction(p.txn, event.Name, event.Time, otelEventAttributes(event.Attributes))
 			}
+			integrationsupport.AddAgentAttribute(p.txn, newrelic.SpanAttributeStatusCode, status.Code.String(), nil) // what does OTel do here? string or int
+			if status.Code == codes.Error {
+				integrationsupport.AddAgentAttribute(p.txn, newrelic.SpanAttributeStatusDescription, status.Description, nil) // same as above
+			}
+
 			p.txn.End()
 		case p.seg != nil:
 			p.seg.switchSegmentType(p.Attributes(), p.SpanKind())
@@ -353,6 +362,10 @@ func (p *hybridSpan) End(options ...oteltrace.SpanEndOption) {
 					continue
 				}
 				p.seg.seg.AddSpanEventEvent(event.Name, event.Time, otelEventAttributes(event.Attributes))
+			}
+			integrationsupport.AddAgentAttributeToSegment(p.seg.seg, newrelic.SpanAttributeStatusCode, status.Code.String(), nil)
+			if status.Code == codes.Error {
+				integrationsupport.AddAgentAttributeToSegment(p.seg.seg, newrelic.SpanAttributeStatusDescription, status.Description, nil) // same as above
 			}
 			p.seg.seg.End()
 		}

@@ -864,8 +864,9 @@ func (thd *thread) startSegmentAt(at time.Time) SegmentStartTime {
 	}
 	txn.Unlock()
 	return SegmentStartTime{
-		start:  s,
-		thread: thd,
+		start:   s,
+		Private: thd,
+		thread:  thd,
 	}
 }
 
@@ -1393,6 +1394,22 @@ func (thd *thread) AddAgentSpanAttribute(key string, val string) {
 	thd.thread.AddAgentSpanAttribute(key, val)
 }
 
+// AddAgentSpanAttributeAt adds an agent attribute to the span identified by
+// startTime (a SegmentStartTime) instead of the top of the stack.
+func (thd *thread) AddAgentSpanAttributeAt(key string, val string, otherVal interface{}, startTime any) {
+	st, ok := startTime.(SegmentStartTime)
+	if !ok {
+		return
+	}
+	txn := thd.txn
+	txn.Lock()
+	defer txn.Unlock()
+	if txn.finished {
+		return
+	}
+	thd.thread.AddAgentSpanAttributeAt(key, val, otherVal, st)
+}
+
 func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
 	txn := thd.txn
 	txn.Lock()
@@ -1412,6 +1429,20 @@ func (thd *thread) AddUserSpanAttribute(key string, val interface{}) error {
 
 	thd.thread.AddUserSpanAttribute(key, val)
 	return nil
+}
+
+func (thd *thread) AddSpanEventEventToTransaction(name string, start time.Time, attrs any) {
+	a, ok := attrs.(SpanEventAttributes)
+	if !ok && attrs != nil {
+		return
+	}
+	thd.logAPIError(thd.addSpanEventEvent(name, start, a), "add span event", nil)
+}
+
+// AddLinkToTransaction adds a span link to the transaction. addLink takes the
+// txn lock itself, so it must not be held here.
+func (thd *thread) AddLinkToTransaction(spanID, traceID string, start time.Time) {
+	thd.logAPIError(thd.addLink(spanID, traceID, start), "add link", nil)
 }
 
 var (

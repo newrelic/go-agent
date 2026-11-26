@@ -376,6 +376,20 @@ func (thread *tracingThread) AddAgentSpanAttribute(key string, val string) {
 	}
 }
 
+func (thread *tracingThread) AddAgentSpanAttributeAt(key, val string, otherVal interface{}, startTime SegmentStartTime) {
+	s := startTime.start
+	if s.Stamp == 0 || s.Depth < 0 || s.Depth >= len(thread.stack) {
+		return
+	}
+	frame := &thread.stack[s.Depth]
+	// The stamp ensures the frame at this depth is still the same segment and
+	// was not ended and replaced by another one.
+	if frame.Stamp != s.Stamp {
+		return
+	}
+	frame.agentAttributes.addString(key, val)
+}
+
 // AddUserSpanAttribute allows custom attributes to be added to spans.
 func (thread *tracingThread) AddUserSpanAttribute(key string, val any) {
 	if len(thread.stack) > 0 {

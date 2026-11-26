@@ -3,7 +3,10 @@
 
 package internal
 
-import "io"
+import (
+	"io"
+	"time"
+)
 
 // This file contains interfaces that are implemented by Transaction and
 // Application but not exposed as public methods so they will only be used in
@@ -33,9 +36,46 @@ type AddAgentSpanAttributer interface {
 	AddAgentSpanAttribute(key string, val string)
 }
 
+// AddAgentSpanAtAttributer should be implemented by the thread held in
+// SegmentStartTime.Private. startTime is a newrelic.SegmentStartTime; it is
+// typed any because this package cannot import newrelic (import cycle).
+type AddAgentSpanAtAttributer interface {
+	AddAgentSpanAttributeAt(key, val string, otherVal interface{}, startTime any)
+}
+
+type AddLinkToTransactioner interface {
+	AddLinkToTransaction(spanID, traceID string, start time.Time)
+}
+
+
+type AddSpanEventEventToTransactioner interface {
+	AddSpanEventEventToTransaction(name string, start time.Time, attrs any)
+}
+
 // AddAgentSpanAttribute allows instrumentation packages to add span attributes.
 func AddAgentSpanAttribute(txn interface{}, key string, val string) {
 	if aa, ok := txn.(AddAgentSpanAttributer); ok {
 		aa.AddAgentSpanAttribute(key, val)
+	}
+}
+
+// AddAgentSpanAttributeAt adds a span attribute to the span identified by
+// startTime rather than the top of the stack.
+func AddAgentSpanAttributeAt(seg interface{}, key string, val string, otherVal interface{}, startTime any) {
+	if aa, ok := seg.(AddAgentSpanAtAttributer); ok {
+		aa.AddAgentSpanAttributeAt(key, val, otherVal, startTime)
+	}
+
+}
+
+func AddSpanEventEventToTransaction(txn interface{}, name string, start time.Time, attrs any) {
+	if aa, ok := txn.(AddSpanEventEventToTransactioner); ok {
+		aa.AddSpanEventEventToTransaction(name, start, attrs)
+	}
+}
+
+func AddLinkToTransaction(txn interface{}, spanID, traceID string, start time.Time) {
+	if aa, ok := txn.(AddLinkToTransactioner); ok {
+		aa.AddLinkToTransaction(spanID, traceID, start)
 	}
 }
